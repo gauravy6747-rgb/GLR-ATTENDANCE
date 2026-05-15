@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="GLR Attendance">
+  <rect width="512" height="512" rx="104" fill="#059669"/>
+  <rect x="94" y="102" width="324" height="308" rx="48" fill="#ffffff"/>
+  <path fill="#059669" d="M170 68h42v80h-42zm130 0h42v80h-42z"/>
+  <path fill="#d1fae5" d="M128 208h256v38H128z"/>
+  <path fill="#059669" d="m194 337 46 46 89-112 34 27-119 148-84-84z"/>
+</svg>

@@ -1,0 +1,60 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import os
+
+from app.core.database import engine, Base
+
+# ── Import ALL models so create_all registers every table ──────────────────
+from app.models.user import User  # noqa: F401
+from app.models.attendance import AttendanceLog  # noqa: F401
+from app.models.company import Company, Location  # noqa: F401
+from app.models.holiday import Holiday  # noqa: F401
+from app.models.working_days import WorkingDaysConfig  # noqa: F401
+from app.models.comp_off import CompOffBalance, CompOffTransaction  # noqa: F401
+from app.models.leave import LeaveRequest  # noqa: F401
+from app.models.notification import (  # noqa: F401
+    NotificationLog,
+    PushSubscription,
+    FaceVerificationFailure
+)
+
+# ── Create all tables ───────────────────────────────────────────────────────
+Base.metadata.create_all(bind=engine)
+
+# ── App ─────────────────────────────────────────────────────────────────────
+app = FastAPI(title="GLR Attendance")
+
+frontend_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "FRONTEND_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=frontend_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Routers ─────────────────────────────────────────────────────────────────
+from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave  # noqa: E402
+
+app.include_router(auth.router)
+app.include_router(dashboard.router)
+app.include_router(attendance.router)
+app.include_router(face.router)
+app.include_router(location.router)
+app.include_router(export.router)
+app.include_router(employees.router)
+app.include_router(company.router)
+app.include_router(leave.router)
+
+
+@app.get("/")
+def home():
+    return {"message": "GLR Attendance Running"}
