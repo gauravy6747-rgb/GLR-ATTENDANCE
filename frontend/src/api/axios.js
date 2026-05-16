@@ -1,7 +1,8 @@
 import axios from "axios"
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "", // local dev uses Vite proxy; production can point to deployed API
+  // Use relative path in production so Vercel proxies it (solves iOS Safari Mixed Content & CORS blocking)
+  baseURL: import.meta.env.DEV ? (import.meta.env.VITE_API_BASE_URL || "") : "", 
   withCredentials: true, // send cookies
   timeout: 45000
 })

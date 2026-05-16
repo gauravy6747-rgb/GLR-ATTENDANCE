@@ -67,7 +67,7 @@ function FaceEnrollPage() {
 
   if (step === "done") {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f6f7f9] px-6">
+      <div className="grid min-h-[100dvh] place-items-center bg-[#f6f7f9] px-6">
         <div className="max-w-sm text-center">
           <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full bg-emerald-100">
             <svg className="h-10 w-10 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -88,7 +88,7 @@ function FaceEnrollPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f6f7f9]">
+    <div className="flex min-h-[100dvh] flex-col bg-[#f6f7f9]">
       <div className="flex-1 px-5 py-8">
         {/* Header */}
         <div className="mb-8 text-center">

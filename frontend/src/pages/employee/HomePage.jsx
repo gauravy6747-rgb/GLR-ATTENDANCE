@@ -184,7 +184,7 @@ export default function HomePage() {
   // ── Camera step ──────────────────────────────────────────────────────────
   if (step === "camera") {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+      <div className="fixed inset-0 z-50 flex flex-col bg-black h-[100dvh]">
         <div className="flex items-center justify-between p-4">
           <button onClick={cancel} className="text-white/80 text-sm font-semibold">Cancel</button>
           <p className="text-white text-sm font-semibold">
@@ -217,7 +217,7 @@ export default function HomePage() {
   // ── Note + submit step ───────────────────────────────────────────────────
   if (step === "note" || step === "submitting") {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-[#f6f7f9]">
+      <div className="fixed inset-0 z-50 flex flex-col bg-[#f6f7f9] h-[100dvh]">
         <div className="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
           <button onClick={cancel} className="text-sm font-semibold text-gray-500">Cancel</button>
           <p className="text-sm font-bold text-gray-900">
