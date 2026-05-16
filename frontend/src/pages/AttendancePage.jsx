@@ -3,23 +3,14 @@ import AdminLayout from "../layouts/AdminLayout"
 import { getAllAttendance, overrideAttendance } from "../services/attendanceService"
 import { getApiErrorMessage } from "../api/axios"
 
-// The API returns naive UTC datetimes (no timezone info).
-// Append 'Z' so the browser parses as UTC and converts to local IST automatically.
-function parseBackendTime(value) {
-  if (!value) return null
-  const str = String(value)
-  const isAware = str.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(str)
-  return new Date(isAware ? str : str + "Z")
-}
-
 function formatDateTime(value) {
   if (!value) return "-"
-  return parseBackendTime(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
+  return new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
 }
 
 function formatTimeOnly(value) {
   if (!value) return "--:--"
-  return parseBackendTime(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 function formatDate(value) {

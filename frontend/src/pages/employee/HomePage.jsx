@@ -30,11 +30,7 @@ function getGPS() {
 
 function formatTime(value) {
   if (!value) return "--:--"
-  const str = String(value)
-  // Backend stores UTC times as naive strings (no offset).
-  // Append 'Z' so the browser parses them as UTC and converts to local IST.
-  const isAware = str.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(str)
-  return new Date(isAware ? str : str + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 function StatusBadge({ status }) {
