@@ -13,12 +13,11 @@ function formatDate(value) {
 
 function formatTime(value) {
   if (!value) return "--:--"
-  // Backend stores IST times. If the string has no timezone offset (legacy rows
-  // or SQLAlchemy naive serialisation), append +05:30 so the browser knows it's IST.
   const str = String(value)
-  const hasOffset = str.includes("+") || str.includes("Z") || (str.includes("-") && str.lastIndexOf("-") > 7)
-  const dateStr = hasOffset ? str : str + "+05:30"
-  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  // Backend stores UTC times as naive strings (no offset).
+  // Append 'Z' so the browser parses them as UTC and converts to local IST.
+  const isAware = str.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(str)
+  return new Date(isAware ? str : str + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 const statusConfig = {

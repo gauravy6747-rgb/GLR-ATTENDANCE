@@ -3,23 +3,23 @@ import AdminLayout from "../layouts/AdminLayout"
 import { getAllAttendance, overrideAttendance } from "../services/attendanceService"
 import { getApiErrorMessage } from "../api/axios"
 
-// Parse a datetime string from the backend (stored in IST) correctly.
-// If no timezone offset is present, append +05:30 so the browser treats it as IST.
-function parseISTDate(value) {
+// The API returns naive UTC datetimes (no timezone info).
+// Append 'Z' so the browser parses as UTC and converts to local IST automatically.
+function parseBackendTime(value) {
   if (!value) return null
   const str = String(value)
-  const hasOffset = str.includes("+") || str.includes("Z") || (str.includes("-") && str.lastIndexOf("-") > 7)
-  return new Date(hasOffset ? str : str + "+05:30")
+  const isAware = str.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(str)
+  return new Date(isAware ? str : str + "Z")
 }
 
 function formatDateTime(value) {
   if (!value) return "-"
-  return parseISTDate(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
+  return parseBackendTime(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
 }
 
 function formatTimeOnly(value) {
   if (!value) return "--:--"
-  return parseISTDate(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  return parseBackendTime(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 function formatDate(value) {
