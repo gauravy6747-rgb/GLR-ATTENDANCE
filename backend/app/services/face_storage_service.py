@@ -28,14 +28,16 @@ def _decode_image(image_data: str):
 
 
 def save_enrolled_face(image_data: str, user_id):
-    image_bytes = _decode_image(image_data)
-    directory = FACE_DATA_DIR / "enrolled"
-    directory.mkdir(parents=True, exist_ok=True)
-
-    path = directory / f"{user_id}.jpg"
-    path.write_bytes(image_bytes)
-
-    return str(path)
+    """
+    Since the app runs on both localhost and EC2 sharing one database,
+    we must store the face as a Base64 string directly in the database
+    instead of saving it to the local file system.
+    """
+    if not image_data:
+        raise FaceStorageError("Face photo is required.")
+    
+    # Return the raw base64 string so it gets saved in the User's face_image_url column
+    return image_data
 
 
 def save_attendance_face(image_data: str, user_id, action_type: str):
@@ -53,6 +55,10 @@ def save_attendance_face(image_data: str, user_id, action_type: str):
 def get_face_path(relative_path: str):
     if not relative_path:
         raise FaceStorageError("No enrolled face image found.")
+
+    # If it's a base64 string (the new way), just return it directly
+    if relative_path.startswith("data:"):
+        return relative_path
 
     path = Path(relative_path)
     if not path.is_absolute():
