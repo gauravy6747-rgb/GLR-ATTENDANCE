@@ -19,8 +19,9 @@ IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def now_ist() -> datetime:
-    """Return the current moment as a timezone-aware datetime in IST."""
-    return datetime.now(tz=IST)
+    """Return the current moment as a naive datetime containing the IST time.
+    This prevents SQLAlchemy/psycopg2 from converting it back to UTC during DB insert."""
+    return datetime.now(tz=IST).replace(tzinfo=None)
 
 
 def today_ist() -> date:
