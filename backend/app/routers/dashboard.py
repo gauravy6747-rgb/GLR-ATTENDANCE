@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import date
+
+from app.utils.timezone import today_ist
 
 from app.core.database import get_db
 from app.core.security import require_admin_or_superadmin
@@ -20,7 +21,7 @@ def admin_dashboard_stats(
     db: Session = Depends(get_db)
 ):
 
-    today = date.today()
+    today = today_ist()
 
     total_employees = db.query(User).filter(
         User.role == "employee"

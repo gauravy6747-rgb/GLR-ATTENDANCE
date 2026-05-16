@@ -3,14 +3,23 @@ import AdminLayout from "../layouts/AdminLayout"
 import { getAllAttendance, overrideAttendance } from "../services/attendanceService"
 import { getApiErrorMessage } from "../api/axios"
 
+// Parse a datetime string from the backend (stored in IST) correctly.
+// If no timezone offset is present, append +05:30 so the browser treats it as IST.
+function parseISTDate(value) {
+  if (!value) return null
+  const str = String(value)
+  const hasOffset = str.includes("+") || str.includes("Z") || (str.includes("-") && str.lastIndexOf("-") > 7)
+  return new Date(hasOffset ? str : str + "+05:30")
+}
+
 function formatDateTime(value) {
   if (!value) return "-"
-  return new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
+  return parseISTDate(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
 }
 
 function formatTimeOnly(value) {
   if (!value) return "--:--"
-  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  return parseISTDate(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 function formatDate(value) {
@@ -52,7 +61,11 @@ function AttendancePage() {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  // Use IST date as the default so the admin sees today's records in Indian time
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const istNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }))
+    return istNow.toISOString().split("T")[0]
+  })
 
   // Override Modal State
   const [selectedRecord, setSelectedRecord] = useState(null)

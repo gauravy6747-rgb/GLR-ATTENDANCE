@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import date
+
+from app.utils.timezone import now_ist, today_ist
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_admin_or_superadmin
@@ -112,7 +114,7 @@ def checkin(
             detail="You are outside the allowed check-in zone"
         )
 
-    today = date.today()
+    today = today_ist()
 
     existing_attendance = db.query(
         AttendanceLog
@@ -134,7 +136,7 @@ def checkin(
         db=db
     )
 
-    now = datetime.now()
+    now = now_ist()   # IST-aware datetime
     checkin_status = "on_time"
 
     if now.hour < 8:
@@ -207,7 +209,7 @@ def checkout(
             detail="You are outside the allowed checkout zone"
         )
         
-    today = date.today()
+    today = today_ist()
 
     attendance = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == current_user.id,
@@ -233,7 +235,7 @@ def checkout(
         db=db
     )
 
-    now = datetime.now()
+    now = now_ist()   # IST-aware datetime
 
     attendance.checkout_time = now
     attendance.checkout_lat = location_data.latitude
@@ -311,7 +313,7 @@ def today_attendance(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    today = date.today()
+    today = today_ist()
     attendance = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == current_user.id,
         AttendanceLog.date == today
@@ -346,7 +348,7 @@ def all_attendance_records(
     current_user: User = Depends(require_admin_or_superadmin),
     db: Session = Depends(get_db)
 ):
-    query_date = date_filter or date.today()
+    query_date = date_filter or today_ist()
     
     records = db.query(
         AttendanceLog,
@@ -393,7 +395,7 @@ def override_attendance(
     attendance.day_status = data.day_status
     attendance.is_manual_override = True
     attendance.override_by = current_user.id
-    attendance.override_at = datetime.utcnow()
+    attendance.override_at = now_ist()
     attendance.override_note = data.admin_note
 
     db.commit()

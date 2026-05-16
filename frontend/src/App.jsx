@@ -11,6 +11,7 @@ import AttendancePage from "./pages/AttendancePage"
 import ReportsPage from "./pages/ReportsPage"
 import CompanySettingsPage from "./pages/CompanySettingsPage"
 import LeaveRequestsPage from "./pages/LeaveRequestsPage"
+import LocationsPage from "./pages/LocationsPage"
 
 // Employee pages
 import FaceEnrollPage from "./pages/employee/FaceEnrollPage"
@@ -133,6 +134,14 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <AttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/office-locations"
+          element={
+            <ProtectedRoute adminOnly>
+              <LocationsPage />
             </ProtectedRoute>
           }
         />

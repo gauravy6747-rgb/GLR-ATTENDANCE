@@ -13,14 +13,29 @@ function getGPS() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => reject(new Error("Unable to get your location. Please check your GPS and try again."))
+      (err) => {
+        const permissionDenied = err.code === err.PERMISSION_DENIED
+        const timedOut = err.code === err.TIMEOUT
+        const message = permissionDenied
+          ? "Location permission is blocked. Please allow location access for this site and try again."
+          : timedOut
+            ? "Location request timed out. Please turn on GPS and try again."
+            : "Unable to get your location. Please check your GPS and try again."
+        reject(new Error(message))
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
   })
 }
 
 function formatTime(value) {
   if (!value) return "--:--"
-  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  // Backend stores IST times. If the string has no timezone offset (legacy rows
+  // or SQLAlchemy naive serialisation), append +05:30 so the browser knows it's IST.
+  const str = String(value)
+  const hasOffset = str.includes("+") || str.includes("Z") || (str.includes("-") && str.lastIndexOf("-") > 7)
+  const dateStr = hasOffset ? str : str + "+05:30"
+  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 function StatusBadge({ status }) {
@@ -78,8 +93,28 @@ export default function HomePage() {
       navigate("/enroll", { replace: true })
       return
     }
-    fetchToday()
-  }, [user])
+
+    let ignore = false
+    getTodayAttendance()
+      .then((data) => {
+        if (ignore) return
+        if (data?.message === "No attendance today") {
+          setToday(null)
+        } else {
+          setToday(data)
+        }
+      })
+      .catch(() => {
+        if (!ignore) setToday(null)
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [user, navigate])
 
   const stopCamera = () => {
     stream?.getTracks().forEach((t) => t.stop())
@@ -127,11 +162,10 @@ export default function HomePage() {
     setError("")
     try {
       const coords = await getGPS()
-      let result
       if (action === "checkin") {
-        result = await checkin(coords.latitude, coords.longitude, note || null, capturedPhoto)
+        await checkin(coords.latitude, coords.longitude, note || null, capturedPhoto)
       } else {
-        result = await checkout(coords.latitude, coords.longitude, note || null, capturedPhoto)
+        await checkout(coords.latitude, coords.longitude, note || null, capturedPhoto)
       }
       setSuccessMsg(action === "checkin" ? "Checked in successfully!" : "Checked out successfully!")
       setStep("idle")
@@ -225,11 +259,20 @@ export default function HomePage() {
               <p className="text-sm text-red-700">{error}</p>
               <button
                 type="button"
-                onClick={openCamera}
+                onClick={capturedPhoto ? submit : openCamera}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700"
               >
                 Try Again
               </button>
+              {capturedPhoto && (
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className="ml-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50"
+                >
+                  Retake Photo
+                </button>
+              )}
             </div>
           )}
         </div>

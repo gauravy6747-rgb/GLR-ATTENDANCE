@@ -13,7 +13,12 @@ function formatDate(value) {
 
 function formatTime(value) {
   if (!value) return "--:--"
-  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  // Backend stores IST times. If the string has no timezone offset (legacy rows
+  // or SQLAlchemy naive serialisation), append +05:30 so the browser knows it's IST.
+  const str = String(value)
+  const hasOffset = str.includes("+") || str.includes("Z") || (str.includes("-") && str.lastIndexOf("-") > 7)
+  const dateStr = hasOffset ? str : str + "+05:30"
+  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 const statusConfig = {

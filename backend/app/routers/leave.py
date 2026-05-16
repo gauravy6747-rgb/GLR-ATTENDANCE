@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
-from datetime import datetime
+
+from app.utils.timezone import now_ist
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_admin_or_superadmin
@@ -133,7 +134,7 @@ def action_leave(
     leave.status = "approved" if data.action == "approve" else "rejected"
     leave.admin_notes = data.notes
     leave.action_by = admin_user.id
-    leave.action_at = datetime.utcnow()
+    leave.action_at = now_ist()
 
     # If approved, deduct from balance
     if data.action == "approve":
