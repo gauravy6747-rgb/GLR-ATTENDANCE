@@ -1,14 +1,14 @@
 {
   "rewrites": [
-    { "source": "/auth/(.*)", "destination": "http://13.206.143.211:8000/auth/$1" },
-    { "source": "/dashboard/(.*)", "destination": "http://13.206.143.211:8000/dashboard/$1" },
-    { "source": "/attendance/(.*)", "destination": "http://13.206.143.211:8000/attendance/$1" },
-    { "source": "/face/(.*)", "destination": "http://13.206.143.211:8000/face/$1" },
-    { "source": "/location/(.*)", "destination": "http://13.206.143.211:8000/location/$1" },
-    { "source": "/export/(.*)", "destination": "http://13.206.143.211:8000/export/$1" },
-    { "source": "/employees/(.*)", "destination": "http://13.206.143.211:8000/employees/$1" },
-    { "source": "/company/(.*)", "destination": "http://13.206.143.211:8000/company/$1" },
-    { "source": "/leave/(.*)", "destination": "http://13.206.143.211:8000/leave/$1" },
+    { "source": "/auth/(.*)", "destination": "https://glr.taxplanadvisor.in/auth/$1" },
+    { "source": "/dashboard/(.*)", "destination": "https://glr.taxplanadvisor.in/dashboard/$1" },
+    { "source": "/attendance/(.*)", "destination": "https://glr.taxplanadvisor.in/attendance/$1" },
+    { "source": "/face/(.*)", "destination": "https://glr.taxplanadvisor.in/face/$1" },
+    { "source": "/location/(.*)", "destination": "https://glr.taxplanadvisor.in/location/$1" },
+    { "source": "/export/(.*)", "destination": "https://glr.taxplanadvisor.in/export/$1" },
+    { "source": "/employees/(.*)", "destination": "https://glr.taxplanadvisor.in/employees/$1" },
+    { "source": "/company/(.*)", "destination": "https://glr.taxplanadvisor.in/company/$1" },
+    { "source": "/leave/(.*)", "destination": "https://glr.taxplanadvisor.in/leave/$1" },
     {
       "source": "/((?!assets|icons|favicon.svg|icons.svg|manifest.webmanifest|service-worker.js|auth/|dashboard/|attendance/|face/|location/|export/|employees/|company/|leave/).*)",
       "destination": "/index.html"
