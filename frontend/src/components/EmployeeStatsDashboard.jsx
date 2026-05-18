@@ -134,9 +134,14 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                   <span className="text-xl">📅</span>
                   <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400">Yearly Summary ({stats.query_year})</h4>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                    <p className="text-2xl font-black text-gray-900">{stats.yearly_stats.worked_days}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 flex flex-col justify-center">
+                    <p className="text-2xl font-black text-gray-900">
+                      {stats.yearly_stats.worked_days}{" "}
+                      <span className="text-xs font-semibold text-gray-400 block sm:inline">
+                        worked out of {stats.yearly_stats.total_working_days} working days
+                      </span>
+                    </p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Days Worked</p>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
@@ -159,7 +164,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                     <p className="text-2xl font-black text-gray-900">
                       {stats.monthly_stats.worked_days}{" "}
                       <span className="text-xs font-semibold text-gray-400 block sm:inline">
-                        worked out of {stats.monthly_stats.total_working_days || 20} working days
+                        worked out of {stats.monthly_stats.total_working_days} working days
                       </span>
                     </p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Days Worked</p>

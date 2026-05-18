@@ -85,6 +85,16 @@ def get_employee_stats(
     q_year = year or today.year
     q_month = month or today.month
 
+    # Get working days configuration
+    working_days_cfg = db.query(WorkingDaysConfig).first()
+    days_map = [True, True, True, True, True, True, False] # default: Mon-Sat working, Sun holiday
+    if working_days_cfg:
+        days_map = [
+            working_days_cfg.monday, working_days_cfg.tuesday, working_days_cfg.wednesday,
+            working_days_cfg.thursday, working_days_cfg.friday, working_days_cfg.saturday,
+            working_days_cfg.sunday
+        ]
+
     # 2. Yearly calculations
     yearly_logs = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == target_user_id,
@@ -93,6 +103,23 @@ def get_employee_stats(
 
     yearly_hours = sum(log.total_hours or 0.0 for log in yearly_logs)
     yearly_worked_days = len([log for log in yearly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
+
+    yearly_holidays = db.query(Holiday).filter(
+        extract("year", Holiday.date) == q_year
+    ).all()
+    yearly_holiday_dates = {h.date for h in yearly_holidays}
+
+    total_yearly_working_days = 0
+    curr_d = date(q_year, 1, 1)
+    end_date = date(q_year, 12, 31)
+    while curr_d <= end_date:
+        is_sun = curr_d.weekday() == 6
+        is_hol = curr_d in yearly_holiday_dates
+        is_work_configured = days_map[curr_d.weekday()]
+
+        if is_work_configured and not is_sun and not is_hol:
+            total_yearly_working_days += 1
+        curr_d = date.fromordinal(curr_d.toordinal() + 1)
 
     # 3. Monthly calculations
     monthly_logs = db.query(AttendanceLog).filter(
@@ -104,16 +131,6 @@ def get_employee_stats(
     monthly_hours = sum(log.total_hours or 0.0 for log in monthly_logs)
     monthly_worked_days = len([log for log in monthly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
     
-    # Calculate official working days in this month
-    working_days_cfg = db.query(WorkingDaysConfig).first()
-    days_map = [True, True, True, True, True, True, False] # default: Mon-Sat working, Sun holiday
-    if working_days_cfg:
-        days_map = [
-            working_days_cfg.monday, working_days_cfg.tuesday, working_days_cfg.wednesday,
-            working_days_cfg.thursday, working_days_cfg.friday, working_days_cfg.saturday,
-            working_days_cfg.sunday
-        ]
-
     month_holidays = db.query(Holiday).filter(
         extract("year", Holiday.date) == q_year,
         extract("month", Holiday.date) == q_month
@@ -202,7 +219,8 @@ def get_employee_stats(
         "query_month": q_month,
         "yearly_stats": {
             "total_hours": round(yearly_hours, 2),
-            "worked_days": yearly_worked_days
+            "worked_days": yearly_worked_days,
+            "total_working_days": total_yearly_working_days
         },
         "monthly_stats": {
             "total_hours": round(monthly_hours, 2),
