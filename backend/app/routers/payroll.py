@@ -62,8 +62,8 @@ def get_payroll_summary(
         if is_work_configured and not is_sun and not is_hol:
             total_working_days += 1
 
-    # Fetch all employees
-    employees = db.query(User).filter(User.role == "employee").order_by(User.name).all()
+    # Fetch all employees (everyone except the core system administrator)
+    employees = db.query(User).filter(User.email != "admin@glrattendance.com").order_by(User.name).all()
 
     payroll_records = []
     for emp in employees:
