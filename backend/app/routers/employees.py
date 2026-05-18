@@ -89,6 +89,9 @@ def delete_employee(
     if user.id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot delete your own account")
 
+    if user.email == "admin@glrattendance.com":
+        raise HTTPException(status_code=403, detail="The system administrator account (admin@glrattendance.com) cannot be deleted")
+
     db.query(AttendanceLog).filter(AttendanceLog.override_by == user.id).update(
         {AttendanceLog.override_by: None},
         synchronize_session=False

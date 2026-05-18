@@ -363,8 +363,38 @@ def all_attendance_records(
         AttendanceLog.checkin_time.desc()
     ).all()
 
-    return [
-        {
+    locations = db.query(Location).all()
+
+    response_data = []
+    for attendance, user in records:
+        matched_location = None
+        if attendance.checkin_lat is not None and attendance.checkin_lng is not None:
+            # Look up matching location by coordinate distance
+            for loc in locations:
+                dist = calculate_distance_meters(
+                    attendance.checkin_lat,
+                    attendance.checkin_lng,
+                    loc.latitude,
+                    loc.longitude
+                )
+                if dist <= loc.radius_meters + 10:  # 10m buffer for GPS margin
+                    matched_location = loc.name
+                    break
+            
+            # Fallback to closest zone if none was within exact geofence radius
+            if not matched_location and locations:
+                closest_loc = min(
+                    locations,
+                    key=lambda l: calculate_distance_meters(
+                        attendance.checkin_lat,
+                        attendance.checkin_lng,
+                        l.latitude,
+                        l.longitude
+                    )
+                )
+                matched_location = closest_loc.name
+
+        response_data.append({
             "id": attendance.id,
             "user_id": attendance.user_id,
             "employee_id": user.employee_id,
@@ -379,10 +409,13 @@ def all_attendance_records(
             "is_anomaly_flagged": attendance.is_anomaly_flagged,
             "is_manual_override": attendance.is_manual_override,
             "checkin_photo_url": attendance.checkin_photo_url,
-            "checkout_photo_url": attendance.checkout_photo_url
-        }
-        for attendance, user in records
-    ]
+            "checkout_photo_url": attendance.checkout_photo_url,
+            "checkin_lat": attendance.checkin_lat,
+            "checkin_lng": attendance.checkin_lng,
+            "location": matched_location or "Remote"
+        })
+
+    return response_data
 
 @router.put("/{attendance_id}/override")
 def override_attendance(
