@@ -19,6 +19,7 @@ export default defineConfig({
       "/export":                { target: API_TARGET, changeOrigin: true },
       "/company":               { target: API_TARGET, changeOrigin: true },
       "/leave/":                { target: API_TARGET, changeOrigin: true },
+      "/payroll":               { target: API_TARGET, changeOrigin: true },
     }
   }
 })
