@@ -23,6 +23,13 @@ api.interceptors.response.use(
 )
 
 export function getApiErrorMessage(error, fallbackMessage) {
+  if (!error) return fallbackMessage
+
+  // Handle standard JS errors (such as those thrown by getGPS() or camera)
+  if (error instanceof Error && !error.config && !error.response) {
+    return error.message
+  }
+
   if (error.code === "ECONNABORTED") {
     return "The request took too long. Please check your connection and try again."
   }

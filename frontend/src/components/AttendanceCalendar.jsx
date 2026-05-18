@@ -54,16 +54,23 @@ export default function AttendanceCalendar({ records, holidays }) {
     const info = calendarData[dateStr]
     const isToday = dateStr === today
     
+    // Check if this calendar day is a Sunday (getDay === 0)
+    const isSunday = new Date(daysInMonth.year, daysInMonth.month, d).getDay() === 0
+    let dayInfo = info
+    if (!dayInfo && isSunday) {
+      dayInfo = { type: "holiday", label: "Sunday" }
+    }
+    
     days.push(
       <div 
         key={d} 
         className={`relative h-10 sm:h-14 flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all
-          ${info ? statusColors[info.type] : "bg-white text-gray-700 border border-gray-100"}
+          ${dayInfo ? statusColors[dayInfo.type] : "bg-white text-gray-700 border border-gray-100"}
           ${isToday ? "ring-2 ring-emerald-600 ring-offset-2" : ""}
         `}
       >
         <span>{d}</span>
-        {info?.type === "holiday" && (
+        {dayInfo?.type === "holiday" && (
           <div className="absolute bottom-1 h-1 w-1 rounded-full bg-white/50" />
         )}
       </div>
