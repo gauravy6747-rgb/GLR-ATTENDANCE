@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import AdminLayout from "../layouts/AdminLayout"
 import { getEmployees, createEmployee, deleteEmployee } from "../services/employeeService"
 import { getApiErrorMessage } from "../api/axios"
+import EmployeeStatsDashboard from "../components/EmployeeStatsDashboard"
 
 function formatRole(role) {
   if (!role) return "-"
@@ -177,6 +178,7 @@ function EmployeesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [showModal, setShowModal] = useState(false)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
 
   const fetchEmployees = () => {
     setLoading(true)
@@ -245,6 +247,7 @@ function EmployeesPage() {
                   <th className="w-64 p-4 text-left text-sm font-semibold">Email</th>
                   <th className="w-36 p-4 text-left text-sm font-semibold">Role</th>
                   <th className="w-32 p-4 text-center text-sm font-semibold">Face</th>
+                  <th className="w-24 p-4 text-center text-sm font-semibold">Stats</th>
                   <th className="w-24 p-4 text-right text-sm font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -268,6 +271,17 @@ function EmployeesPage() {
                         {emp.face_enrolled ? "Enrolled" : "Pending"}
                       </span>
                     </td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => setSelectedEmployeeId(emp.id)}
+                        className="inline-flex rounded-lg bg-emerald-50 p-2 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition"
+                        title="View Working Stats Dashboard"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+                        </svg>
+                      </button>
+                    </td>
                     <td className="p-4 text-right">
                       <button
                         onClick={() => handleDeleteEmployee(emp.id)}
@@ -290,6 +304,27 @@ function EmployeesPage() {
           </div>
         )}
       </div>
+      {/* Stats Modal */}
+      {selectedEmployeeId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl my-8 relative">
+            <button
+              onClick={() => setSelectedEmployeeId(null)}
+              className="absolute right-4 top-4 z-10 rounded-full bg-gray-100 p-2 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="text-xl font-black text-gray-950 mb-6 flex items-center gap-2">
+              <span>📈</span> Employee Working Stats Dashboard
+            </h3>
+            <div className="max-h-[75vh] overflow-y-auto pr-1">
+              <EmployeeStatsDashboard user_id={selectedEmployeeId} />
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }

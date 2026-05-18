@@ -62,6 +62,7 @@ function AttendancePage() {
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [overrideData, setOverrideData] = useState({ day_status: "present", admin_note: "" })
   const [submitting, setSubmitting] = useState(false)
+  const [lightboxPhoto, setLightboxPhoto] = useState(null)
 
   const fetchRecords = () => {
     setLoading(true)
@@ -125,15 +126,16 @@ function AttendancePage() {
                 <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Check In</th>
                 <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Check Out</th>
                 <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">Status</th>
+                <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">Photos</th>
                 <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Location</th>
                 <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="7" className="p-8 text-center text-gray-400">Loading records...</td></tr>
+                <tr><td colSpan="8" className="p-8 text-center text-gray-400">Loading records...</td></tr>
               ) : records.length === 0 ? (
-                <tr><td colSpan="7" className="p-8 text-center text-gray-400">No attendance found</td></tr>
+                <tr><td colSpan="8" className="p-8 text-center text-gray-400">No attendance found</td></tr>
               ) : (
                 records.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50/50 transition">
@@ -167,6 +169,49 @@ function AttendancePage() {
                       {record.is_manual_override && (
                         <div className="mt-1 text-[10px] font-bold text-amber-600 uppercase">Overridden</div>
                       )}
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        {record.checkin_photo_url ? (
+                          <button
+                            onClick={() => setLightboxPhoto(record.checkin_photo_url)}
+                            className="group relative h-10 w-10 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm transition hover:border-emerald-500"
+                            title="View Check-In Photo"
+                          >
+                            <img
+                              src={`/attendance/photo?path=${encodeURIComponent(record.checkin_photo_url)}`}
+                              alt="Check-in"
+                              className="h-full w-full object-cover transition duration-200 group-hover:scale-110"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                              <span className="text-[10px] font-bold text-white uppercase">In</span>
+                            </div>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400 font-semibold">—</span>
+                        )}
+
+                        {record.checkout_photo_url ? (
+                          <button
+                            onClick={() => setLightboxPhoto(record.checkout_photo_url)}
+                            className="group relative h-10 w-10 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm transition hover:border-emerald-500"
+                            title="View Check-Out Photo"
+                          >
+                            <img
+                              src={`/attendance/photo?path=${encodeURIComponent(record.checkout_photo_url)}`}
+                              alt="Check-out"
+                              className="h-full w-full object-cover transition duration-200 group-hover:scale-110"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                              <span className="text-[10px] font-bold text-white uppercase">Out</span>
+                            </div>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400 font-semibold">—</span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4">
                       {record.checkin_lat ? (
@@ -250,6 +295,37 @@ function AttendancePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxPhoto && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="relative max-w-lg w-full rounded-2xl overflow-hidden bg-white p-2 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/75 transition"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={`/attendance/photo?path=${encodeURIComponent(lightboxPhoto)}`}
+              alt="Verification selfie"
+              className="w-full max-h-[75vh] object-contain rounded-xl"
+              onError={(e) => {
+                e.target.onerror = null
+                e.target.src = "https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=600"
+              }}
+            />
+            <p className="mt-2 text-center text-xs font-bold uppercase text-gray-400 py-1">
+              Verification Photo Detail
+            </p>
           </div>
         </div>
       )}

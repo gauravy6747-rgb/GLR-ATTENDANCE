@@ -3,6 +3,7 @@ import EmployeeLayout from "../../layouts/EmployeeLayout"
 import { getMyHistory } from "../../services/attendanceService"
 import api, { getApiErrorMessage } from "../../api/axios"
 import AttendanceCalendar from "../../components/AttendanceCalendar"
+import EmployeeStatsDashboard from "../../components/EmployeeStatsDashboard"
 
 function formatDate(value) {
   if (!value) return "-"
@@ -78,11 +79,17 @@ export default function MyAttendancePage() {
             >
               List
             </button>
+            <button
+              onClick={() => setView("stats")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${view === "stats" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              Stats
+            </button>
           </div>
         </div>
 
         {/* Summary strip */}
-        {!loading && !error && records.length > 0 && (
+        {!loading && !error && view !== "stats" && records.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Full Days",  value: fullDays },
@@ -138,6 +145,11 @@ export default function MyAttendancePage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Stats Dashboard View */}
+        {!loading && !error && view === "stats" && (
+          <EmployeeStatsDashboard />
         )}
       </div>
     </EmployeeLayout>
