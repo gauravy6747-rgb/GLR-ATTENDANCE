@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from datetime import date
+import os
 
 from app.utils.timezone import now_ist, today_ist
 
@@ -15,7 +17,7 @@ from app.models.comp_off import CompOffBalance, CompOffTransaction
 from app.models.notification import FaceVerificationFailure
 from app.schemas.attendance import AttendanceResponse, CheckInRequest, CheckOutRequest, OverrideRequest
 from app.services.aws_rekognition_service import AwsRekognitionError, compare_faces
-from app.services.face_storage_service import FaceStorageError, get_face_path, save_attendance_face
+from app.services.face_storage_service import FaceStorageError, get_face_path, save_attendance_face, BACKEND_ROOT
 from app.services.gps_service import calculate_distance_meters
 
 router = APIRouter(
@@ -375,7 +377,9 @@ def all_attendance_records(
             "checkout_status": attendance.checkout_status,
             "day_status": attendance.day_status,
             "is_anomaly_flagged": attendance.is_anomaly_flagged,
-            "is_manual_override": attendance.is_manual_override
+            "is_manual_override": attendance.is_manual_override,
+            "checkin_photo_url": attendance.checkin_photo_url,
+            "checkout_photo_url": attendance.checkout_photo_url
         }
         for attendance, user in records
     ]
@@ -401,3 +405,27 @@ def override_attendance(
     db.refresh(attendance)
 
     return {"message": "Attendance overriden successfully"}
+
+@router.get("/photo")
+def get_attendance_photo(
+    path: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Try resolving path relative to backend root if it is relative or doesn't exist
+    if not os.path.exists(path):
+        alt_path = os.path.join(BACKEND_ROOT, path)
+        if os.path.exists(alt_path):
+            path = alt_path
+        else:
+            raise HTTPException(status_code=404, detail="Photo file not found")
+            
+    # Check authorization: admins can see all, employees can only see their own
+    user_dir_part = f"/attendance/{current_user.id}/"
+    user_dir_part_win = f"\\attendance\\{current_user.id}\\"
+    
+    if current_user.role not in ["admin", "superadmin"]:
+        if user_dir_part not in path and user_dir_part_win not in path:
+            raise HTTPException(status_code=403, detail="Not authorized to view this photo")
+
+    return FileResponse(path)
