@@ -85,7 +85,7 @@ export default function EmployeePayrollSlip() {
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
           <span>Generating pay slip...</span>
         </div>
-      ) : slip && (
+      ) : (slip && typeof slip === "object" && !Array.isArray(slip)) ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-5">
           <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
             <div>
@@ -150,7 +150,7 @@ export default function EmployeePayrollSlip() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

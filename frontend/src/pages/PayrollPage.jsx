@@ -90,10 +90,10 @@ export default function PayrollPage() {
     { value: 12, label: "December" }
   ]
 
-  const filteredRecords = payrollData?.records.filter(r => 
-    r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    r.employee_id.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || []
+  const filteredRecords = (Array.isArray(payrollData?.records) ? payrollData.records : []).filter(r => 
+    r?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    r?.employee_id?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <AdminLayout>
