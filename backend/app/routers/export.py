@@ -52,9 +52,20 @@ def export_attendance_excel(
         query = query.filter(extract('year', AttendanceLog.date) == year)
 
     if employee_id:
-        query = query.filter(
-            (User.employee_id == employee_id) | (User.id == employee_id)
-        )
+        from uuid import UUID
+        is_uuid = False
+        try:
+            UUID(employee_id)
+            is_uuid = True
+        except ValueError:
+            pass
+
+        if is_uuid:
+            query = query.filter(
+                (User.employee_id == employee_id) | (User.id == employee_id)
+            )
+        else:
+            query = query.filter(User.employee_id == employee_id)
 
     records = query.order_by(
         AttendanceLog.date.desc(),
