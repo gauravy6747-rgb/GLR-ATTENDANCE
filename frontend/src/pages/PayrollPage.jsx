@@ -15,6 +15,8 @@ export default function PayrollPage() {
   const [savingSalary, setSavingSalary] = useState(false)
   
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedUserId, setSelectedUserId] = useState(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
 
@@ -90,10 +92,14 @@ export default function PayrollPage() {
     { value: 12, label: "December" }
   ]
 
-  const filteredRecords = (Array.isArray(payrollData?.records) ? payrollData.records : []).filter(r => 
+  const suggestions = (Array.isArray(payrollData?.records) ? payrollData.records : []).filter(r => 
     r?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     r?.employee_id?.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const displayedRecords = selectedUserId 
+    ? (Array.isArray(payrollData?.records) ? payrollData.records.filter(r => r.user_id === selectedUserId) : [])
+    : suggestions
 
   return (
     <AdminLayout>
@@ -147,11 +153,61 @@ export default function PayrollPage() {
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
               <input
                 type="text"
-                placeholder="Search by employee name or ID..."
+                placeholder="Search or select employee..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 py-3 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-500 focus:bg-white"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setSelectedUserId(null)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowSuggestions(false)
+                  }, 200)
+                }}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-10 py-3 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-500 focus:bg-white"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setSelectedUserId(null)
+                    setShowSuggestions(false)
+                  }}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 font-bold transition"
+                >
+                  ✕
+                </button>
+              )}
+
+              {/* Suggestions floating list */}
+              {showSuggestions && searchQuery && (
+                <div className="absolute left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-lg space-y-1">
+                  {suggestions.length === 0 ? (
+                    <div className="py-2.5 px-3 text-xs font-semibold text-gray-400 italic">
+                      No matching employees found
+                    </div>
+                  ) : (
+                    suggestions.map((s) => (
+                      <button
+                        key={s.user_id}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(s.name)
+                          setSelectedUserId(s.user_id)
+                          setShowSuggestions(false)
+                        }}
+                        className="w-full text-left rounded-lg py-2.5 px-3 text-xs font-bold text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 transition flex items-center justify-between"
+                      >
+                        <span>{s.name}</span>
+                        <span className="text-[10px] text-gray-400 font-normal">{s.employee_id}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="rounded-xl bg-gray-50 px-4 py-3 border border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
@@ -165,7 +221,7 @@ export default function PayrollPage() {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
               <span>Calculating payroll records...</span>
             </div>
-          ) : filteredRecords.length === 0 ? (
+          ) : displayedRecords.length === 0 ? (
             <div className="py-16 text-center text-sm font-medium text-gray-400">
               No employee payroll records found matching your search.
             </div>
@@ -183,7 +239,7 @@ export default function PayrollPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredRecords.map((rec) => {
+                  {displayedRecords.map((rec) => {
                     const isEditing = editingUserId === rec.user_id
 
                     return (
