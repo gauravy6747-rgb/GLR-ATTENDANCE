@@ -10,7 +10,7 @@ export default function PayrollPage() {
   const [payrollData, setPayrollData] = useState(null)
   
   const [loading, setLoading] = useState(true)
-  const [editingUserId, setEditingUserId] = useState(null)
+  const [editingEmp, setEditingEmp] = useState(null)
   const [editingSalaryVal, setEditingSalaryVal] = useState("")
   const [savingSalary, setSavingSalary] = useState(false)
   
@@ -41,7 +41,7 @@ export default function PayrollPage() {
   }, [year, month])
 
   const handleEditSalaryClick = (emp) => {
-    setEditingUserId(emp.user_id)
+    setEditingEmp(emp)
     setEditingSalaryVal(emp.base_salary.toString())
     setError("")
     setSuccessMsg("")
@@ -65,7 +65,7 @@ export default function PayrollPage() {
         base_salary: parsedSalary
       })
       setSuccessMsg("Base monthly salary updated successfully!")
-      setEditingUserId(null)
+      setEditingEmp(null)
       
       // Refresh payroll calculation list
       fetchPayroll()
@@ -240,8 +240,6 @@ export default function PayrollPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {displayedRecords.map((rec) => {
-                    const isEditing = editingUserId === rec.user_id
-
                     return (
                       <tr key={rec.user_id} className="hover:bg-gray-50 transition duration-150">
                         <td className="px-6 py-4 font-semibold text-gray-900">
@@ -252,45 +250,17 @@ export default function PayrollPage() {
                         </td>
                         
                         <td className="px-6 py-4">
-                          {isEditing ? (
-                            <form onSubmit={(e) => handleSaveSalarySubmit(e, rec.user_id)} className="flex items-center gap-2 max-w-[200px]">
-                              <input
-                                type="number"
-                                step="any"
-                                value={editingSalaryVal}
-                                onChange={(e) => setEditingSalaryVal(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm font-bold text-gray-900 outline-none focus:border-emerald-500"
-                                required
-                                autoFocus
-                              />
-                              <button
-                                type="submit"
-                                disabled={savingSalary}
-                                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:bg-emerald-300"
-                              >
-                                {savingSalary ? "..." : "Save"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingUserId(null)}
-                                className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-50"
-                              >
-                                Cancel
-                              </button>
-                            </form>
-                          ) : (
-                            <div className="flex items-center gap-3">
-                              <span className="text-base font-black text-gray-900">
-                                ₹{rec.base_salary ? rec.base_salary.toLocaleString("en-IN") : "0"}
-                              </span>
-                              <button
-                                onClick={() => handleEditSalaryClick(rec)}
-                                className="rounded-md border border-gray-200 px-2 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition"
-                              >
-                                Edit Salary
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-black text-gray-900">
+                              ₹{rec.base_salary ? rec.base_salary.toLocaleString("en-IN") : "0"}
+                            </span>
+                            <button
+                              onClick={() => handleEditSalaryClick(rec)}
+                              className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition shadow-sm"
+                            >
+                              Edit Salary
+                            </button>
+                          </div>
                         </td>
 
                         <td className="px-6 py-4 text-center font-bold text-gray-900">
@@ -320,6 +290,90 @@ export default function PayrollPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Salary Modal */}
+      {editingEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/40 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-gray-950">Update Base Salary</h3>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mt-0.5">
+                  {editingEmp.name} ({editingEmp.employee_id})
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingEmp(null)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Stats Breakdown inside Modal */}
+            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-xs font-semibold text-gray-600">
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Worked Days</span>
+                <span className="text-sm font-black text-gray-900">{editingEmp.worked_days} days</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Paid Leaves</span>
+                <span className="text-sm font-black text-indigo-700">{editingEmp.paid_leaves} leaves</span>
+              </div>
+              <div className="col-span-2 pt-2 border-t border-gray-200 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Paid Days</span>
+                  <span className="text-sm font-black text-gray-950">{editingEmp.total_paid_days} / {editingEmp.total_working_days} working days</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Live Pro-rata Payout</span>
+                  <span className="text-sm font-black text-emerald-600">
+                    ₹{((parseFloat(editingSalaryVal) || 0) / editingEmp.total_working_days * editingEmp.total_paid_days).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={(e) => handleSaveSalarySubmit(e, editingEmp.user_id)} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase text-gray-500 tracking-wide">Base Monthly Salary (₹)</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 font-bold text-sm">₹</span>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Enter base monthly salary..."
+                    value={editingSalaryVal}
+                    onChange={(e) => setEditingSalaryVal(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-8 pr-4 py-3 text-sm font-bold text-gray-900 outline-none transition focus:border-emerald-500 focus:bg-white"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingEmp(null)}
+                  className="flex-1 rounded-xl border border-gray-200 py-3 text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSalary}
+                  className="flex-1 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:bg-emerald-300"
+                >
+                  {savingSalary ? "Saving Changes..." : "Save Salary"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }
