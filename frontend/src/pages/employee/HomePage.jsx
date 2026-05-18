@@ -11,21 +11,46 @@ function getGPS() {
       reject(new Error("Geolocation not supported by your browser."))
       return
     }
+    
+    // Attempt with high accuracy first
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
       (err) => {
-        const permissionDenied = err.code === err.PERMISSION_DENIED
-        const timedOut = err.code === err.TIMEOUT
-        const message = permissionDenied
-          ? "Location permission is blocked. Please allow location access for this site and try again."
-          : timedOut
-            ? "Location request timed out. Please turn on GPS and try again."
-            : "Unable to get your location. Please check your GPS and try again."
-        reject(new Error(message))
+        // If high accuracy times out (common indoors or on iPhones), try with low accuracy fallback
+        if (err.code === err.TIMEOUT) {
+          console.warn("High accuracy GPS timed out. Trying low accuracy fallback...")
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            (err2) => reject(getGPSError(err2)),
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+          )
+        } else {
+          reject(getGPSError(err))
+        }
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     )
   })
+}
+
+function getGPSError(err) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  
+  if (err.code === err.PERMISSION_DENIED) {
+    if (isIOS) {
+      return new Error(
+        "Location permission is blocked. Please enable it in your iPhone settings:\n" +
+        "1. Go to iPhone Settings > Privacy & Security > Location Services (make sure it's turned ON).\n" +
+        "2. Scroll down on that screen, select Safari (or your browser) and change settings to 'Allow' or 'Ask'.\n" +
+        "3. If you installed this as a Home Screen App (PWA), go to Settings > PWA App Name > Location > Allow."
+      )
+    }
+    return new Error("Location permission is blocked. Please enable location permissions for this website in your browser settings and try again.")
+  } else if (err.code === err.TIMEOUT) {
+    return new Error("Location request timed out. Please turn ON your device's location/GPS services, move near a window/open area, and try again.")
+  } else {
+    return new Error("Unable to retrieve your location. Please check if your device's GPS is enabled and try again.")
+  }
 }
 
 function formatTime(value) {
@@ -120,6 +145,7 @@ export default function HomePage() {
   const openCamera = async () => {
     setError("")
     setCapturedPhoto(null)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -130,8 +156,17 @@ export default function HomePage() {
       setTimeout(() => {
         if (videoRef.current) videoRef.current.srcObject = mediaStream
       }, 100)
-    } catch {
-      setError("Camera access is required for face verification. Please allow camera access and try again.")
+    } catch (exc) {
+      console.error("Camera access failed:", exc)
+      if (isIOS) {
+        setError(
+          "Camera access is blocked. Please enable camera access in your iPhone settings:\n" +
+          "1. Go to iPhone Settings > Safari (or your browser) > Camera > select 'Allow'.\n" +
+          "2. If you installed this as a Home Screen App (PWA), go to iPhone Settings > PWA App Name > Camera > Allow."
+        )
+      } else {
+        setError("Camera access is required for face verification. Please allow camera permissions for this website in your browser settings and try again.")
+      }
       setStep("note")
     }
   }
@@ -289,7 +324,7 @@ export default function HomePage() {
 
           {error && (
             <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
               <button
                 type="button"
                 onClick={capturedPhoto ? submit : openCamera}

@@ -16,6 +16,8 @@ function FaceEnrollPage() {
 
   const startCamera = async () => {
     setError("")
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 640, height: 480 }
@@ -28,8 +30,17 @@ function FaceEnrollPage() {
           videoRef.current.srcObject = mediaStream
         }
       }, 100)
-    } catch {
-      setError("Camera access denied. Please allow camera access in your browser settings.")
+    } catch (exc) {
+      console.error("Camera access failed:", exc)
+      if (isIOS) {
+        setError(
+          "Camera access is blocked. Please enable camera access in your iPhone settings:\n" +
+          "1. Go to iPhone Settings > Safari (or your browser) > Camera > select 'Allow'.\n" +
+          "2. If you installed this as a Home Screen App (PWA), go to iPhone Settings > PWA App Name > Camera > Allow."
+        )
+      } else {
+        setError("Camera access is blocked or unavailable. Please enable camera permissions for this website in your browser settings and try again.")
+      }
     }
   }
 
@@ -121,7 +132,7 @@ function FaceEnrollPage() {
             </div>
 
             {error && (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-line">{error}</p>
             )}
 
             <button
@@ -167,7 +178,7 @@ function FaceEnrollPage() {
             </div>
 
             {error && (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-line">{error}</p>
             )}
 
             <div className="flex gap-3">

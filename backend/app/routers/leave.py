@@ -44,12 +44,8 @@ def request_leave(
     if days_requested <= 0:
         raise HTTPException(status_code=400, detail="Invalid date range")
 
-    # Check comp-off balance
-    balance = db.query(CompOffBalance).filter(CompOffBalance.user_id == current_user.id).first()
-    available = float(balance.days_earned) - float(balance.days_used) - float(balance.days_paid_out) if balance else 0
-
-    if available < days_requested:
-        raise HTTPException(status_code=400, detail=f"Insufficient comp-off balance. You have {available} days available, but requested {days_requested}.")
+    # Allow request even with 0 comp-off balance; the balance will be managed during approval.
+    pass
 
     leave = LeaveRequest(
         user_id=current_user.id,
@@ -136,19 +132,27 @@ def action_leave(
     leave.action_by = admin_user.id
     leave.action_at = now_ist()
 
-    # If approved, deduct from balance
+    # If approved, deduct from balance if available
     if data.action == "approve":
         days_requested = (leave.end_date - leave.start_date).days + 1
         balance = db.query(CompOffBalance).filter(CompOffBalance.user_id == leave.user_id).first()
-        if balance:
-            balance.days_used = float(balance.days_used or 0) + days_requested
+        if not balance:
+            balance = CompOffBalance(user_id=leave.user_id)
+            db.add(balance)
+            db.flush()
+            
+        available = float(balance.days_earned) - float(balance.days_used) - float(balance.days_paid_out)
+        
+        if available > 0:
+            deduct_amount = min(available, float(days_requested))
+            balance.days_used = float(balance.days_used or 0) + deduct_amount
             
             txn = CompOffTransaction(
                 user_id=leave.user_id,
                 type="used_leave",
-                amount=days_requested,
+                amount=deduct_amount,
                 reference_date=leave.start_date,
-                notes=f"Leave approved for {leave.start_date} to {leave.end_date}",
+                notes=f"Leave approved. Deducted {deduct_amount} days from comp-off balance.",
                 approved_by=admin_user.id
             )
             db.add(txn)

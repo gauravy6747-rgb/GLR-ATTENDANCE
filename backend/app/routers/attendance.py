@@ -262,32 +262,31 @@ def checkout(
         ]
         is_working_day = days_map[day_of_week]
 
-    is_special_day = bool(holiday) or not is_working_day
+    is_sunday = today.weekday() == 6
+    is_special_day = bool(holiday) or not is_working_day or is_sunday
 
-    if total_hours >= 9.0:
-        if is_special_day:
-            attendance.day_status = "holiday_work"
-            
-            balance = db.query(CompOffBalance).filter(CompOffBalance.user_id == current_user.id).first()
-            if not balance:
-                balance = CompOffBalance(user_id=current_user.id)
-                db.add(balance)
-            
-            balance.days_earned = float(balance.days_earned or 0) + 1.0
-            
-            txn = CompOffTransaction(
-                user_id=current_user.id,
-                type="earned",
-                amount=1.0,
-                reference_date=today,
-                notes="Worked full day (9+ hrs) on a holiday/weekend"
-            )
-            db.add(txn)
-        else:
-            attendance.day_status = "full_day"
+    if is_special_day:
+        attendance.day_status = "holiday_work"
+        
+        balance = db.query(CompOffBalance).filter(CompOffBalance.user_id == current_user.id).first()
+        if not balance:
+            balance = CompOffBalance(user_id=current_user.id)
+            db.add(balance)
+        
+        amount_earned = 1.0 if total_hours >= 9.0 else 0.5
+        balance.days_earned = float(balance.days_earned or 0) + amount_earned
+        
+        txn = CompOffTransaction(
+            user_id=current_user.id,
+            type="earned",
+            amount=amount_earned,
+            reference_date=today,
+            notes=f"Worked {'full' if total_hours >= 9.0 else 'half'} day ({total_hours} hrs) on a holiday/weekend"
+        )
+        db.add(txn)
     else:
-        if is_special_day:
-            attendance.day_status = "holiday_work"
+        if total_hours >= 9.0:
+            attendance.day_status = "full_day"
         else:
             attendance.day_status = "half_day"
 
