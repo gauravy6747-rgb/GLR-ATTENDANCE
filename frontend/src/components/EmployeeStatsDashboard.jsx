@@ -154,9 +154,14 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                     Monthly Summary ({months.find(m => m.value === stats.query_month)?.label})
                   </h4>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                    <p className="text-2xl font-black text-gray-900">{stats.monthly_stats.worked_days}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 flex flex-col justify-center">
+                    <p className="text-2xl font-black text-gray-900">
+                      {stats.monthly_stats.worked_days}{" "}
+                      <span className="text-xs font-semibold text-gray-400 block sm:inline">
+                        worked out of {stats.monthly_stats.total_working_days || 20} working days
+                      </span>
+                    </p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Days Worked</p>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
@@ -199,6 +204,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                     stats.single_day_detail.day_status === "half_day" ? "bg-amber-100 text-amber-700" :
                     stats.single_day_detail.day_status === "holiday_work" ? "bg-purple-100 text-purple-700" :
                     stats.single_day_detail.day_status === "comp_off_leave" ? "bg-indigo-100 text-indigo-700" :
+                    stats.single_day_detail.day_status === "holiday" ? "bg-blue-100 text-blue-700" :
                     "bg-gray-100 text-gray-700"
                   }`}>
                     {stats.single_day_detail.day_status.replaceAll("_", " ")}
@@ -212,44 +218,55 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                 </div>
               ) : (
                 <div className="space-y-6 pt-2">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                      <p className="text-xs font-bold uppercase text-gray-400">Check In</p>
-                      <p className="text-lg font-bold text-gray-900 mt-1">{formatTime(stats.single_day_detail.checkin_time)}</p>
-                      <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkin_status || "-"}</p>
+                  {stats.single_day_detail.day_status === "holiday" ? (
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-6 text-center space-y-2 my-2">
+                      <span className="text-3xl">🎉</span>
+                      <h5 className="text-base font-bold text-blue-950">Scheduled Holiday / Weekend</h5>
+                      <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">{stats.single_day_detail.checkin_note || "Official Non-Working Holiday"}</p>
+                      <p className="text-xs text-gray-500">No attendance check-in is required or recorded for this holiday.</p>
                     </div>
+                  ) : (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
+                          <p className="text-xs font-bold uppercase text-gray-400">Check In</p>
+                          <p className="text-lg font-bold text-gray-900 mt-1">{formatTime(stats.single_day_detail.checkin_time)}</p>
+                          <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkin_status || "-"}</p>
+                        </div>
 
-                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                      <p className="text-xs font-bold uppercase text-gray-400">Check Out</p>
-                      <p className="text-lg font-bold text-gray-900 mt-1">{formatTime(stats.single_day_detail.checkout_time)}</p>
-                      <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkout_status || "-"}</p>
-                    </div>
+                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
+                          <p className="text-xs font-bold uppercase text-gray-400">Check Out</p>
+                          <p className="text-lg font-bold text-gray-900 mt-1">{formatTime(stats.single_day_detail.checkout_time)}</p>
+                          <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkout_status || "-"}</p>
+                        </div>
 
-                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                      <p className="text-xs font-bold uppercase text-gray-400">Hours Worked</p>
-                      <p className="text-lg font-bold text-emerald-600 mt-1">
-                        {stats.single_day_detail.total_hours ? `${Number(stats.single_day_detail.total_hours).toFixed(2)} hrs` : "--"}
-                      </p>
-                      <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">Calculated active time</p>
-                    </div>
-                  </div>
+                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
+                          <p className="text-xs font-bold uppercase text-gray-400">Hours Worked</p>
+                          <p className="text-lg font-bold text-emerald-600 mt-1">
+                            {stats.single_day_detail.total_hours ? `${Number(stats.single_day_detail.total_hours).toFixed(2)} hrs` : "--"}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">Calculated active time</p>
+                        </div>
+                      </div>
 
-                  {/* Notes & Comments */}
-                  {(stats.single_day_detail.checkin_note || stats.single_day_detail.checkout_note) && (
-                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 space-y-3">
-                      {stats.single_day_detail.checkin_note && (
-                        <div>
-                          <p className="text-[10px] font-bold uppercase text-gray-400">Check In Note</p>
-                          <p className="text-sm italic text-gray-700 mt-1">&ldquo;{stats.single_day_detail.checkin_note}&rdquo;</p>
+                      {/* Notes & Comments */}
+                      {(stats.single_day_detail.checkin_note || stats.single_day_detail.checkout_note) && (
+                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 space-y-3">
+                          {stats.single_day_detail.checkin_note && (
+                            <div>
+                              <p className="text-[10px] font-bold uppercase text-gray-400">Check In Note</p>
+                              <p className="text-sm italic text-gray-700 mt-1">&ldquo;{stats.single_day_detail.checkin_note}&rdquo;</p>
+                            </div>
+                          )}
+                          {stats.single_day_detail.checkout_note && (
+                            <div className="border-t border-gray-200/50 pt-2">
+                              <p className="text-[10px] font-bold uppercase text-gray-400">Check Out Note</p>
+                              <p className="text-sm italic text-gray-700 mt-1">&ldquo;{stats.single_day_detail.checkout_note}&rdquo;</p>
+                            </div>
+                          )}
                         </div>
                       )}
-                      {stats.single_day_detail.checkout_note && (
-                        <div className="border-t border-gray-200/50 pt-2">
-                          <p className="text-[10px] font-bold uppercase text-gray-400">Check Out Note</p>
-                          <p className="text-sm italic text-gray-700 mt-1">&ldquo;{stats.single_day_detail.checkout_note}&rdquo;</p>
-                        </div>
-                      )}
-                    </div>
+                    </>
                   )}
 
                   {/* Verification Photos */}

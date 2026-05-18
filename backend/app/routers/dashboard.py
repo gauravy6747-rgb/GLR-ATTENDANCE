@@ -55,6 +55,10 @@ def admin_dashboard_stats(
     }
 
 
+import calendar
+from app.models.holiday import Holiday
+from app.models.working_days import WorkingDaysConfig
+
 @router.get("/employee-stats")
 def get_employee_stats(
     user_id: str = None,
@@ -100,6 +104,33 @@ def get_employee_stats(
     monthly_hours = sum(log.total_hours or 0.0 for log in monthly_logs)
     monthly_worked_days = len([log for log in monthly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
     
+    # Calculate official working days in this month
+    working_days_cfg = db.query(WorkingDaysConfig).first()
+    days_map = [True, True, True, True, True, True, False] # default: Mon-Sat working, Sun holiday
+    if working_days_cfg:
+        days_map = [
+            working_days_cfg.monday, working_days_cfg.tuesday, working_days_cfg.wednesday,
+            working_days_cfg.thursday, working_days_cfg.friday, working_days_cfg.saturday,
+            working_days_cfg.sunday
+        ]
+
+    month_holidays = db.query(Holiday).filter(
+        extract("year", Holiday.date) == q_year,
+        extract("month", Holiday.date) == q_month
+    ).all()
+    holiday_dates = {h.date for h in month_holidays}
+
+    num_days = calendar.monthrange(q_year, q_month)[1]
+    total_working_days = 0
+    for day_num in range(1, num_days + 1):
+        d = date(q_year, q_month, day_num)
+        is_sun = d.weekday() == 6
+        is_hol = d in holiday_dates
+        is_work_configured = days_map[d.weekday()]
+
+        if is_work_configured and not is_sun and not is_hol:
+            total_working_days += 1
+
     # Breakdown of statuses in month
     breakdown = {
         "full_day": len([log for log in monthly_logs if log.day_status == "full_day"]),
@@ -116,6 +147,7 @@ def get_employee_stats(
             AttendanceLog.user_id == target_user_id,
             AttendanceLog.date == query_date
         ).first()
+        
         if log:
             single_day_log = {
                 "id": str(log.id),
@@ -131,6 +163,37 @@ def get_employee_stats(
                 "checkin_photo_url": log.checkin_photo_url,
                 "checkout_photo_url": log.checkout_photo_url
             }
+        else:
+            # Check if this day is a holiday
+            is_sunday = query_date.weekday() == 6
+            day_holiday = db.query(Holiday).filter(Holiday.date == query_date).first()
+            
+            is_work_day = True
+            if working_days_cfg:
+                day_of_week = query_date.weekday()
+                days_map_cfg = [
+                    working_days_cfg.monday, working_days_cfg.tuesday, working_days_cfg.wednesday,
+                    working_days_cfg.thursday, working_days_cfg.friday, working_days_cfg.saturday,
+                    working_days_cfg.sunday
+                ]
+                is_work_day = days_map_cfg[day_of_week]
+
+            if day_holiday or is_sunday or not is_work_day:
+                holiday_name = day_holiday.name if day_holiday else ("Sunday Holiday" if is_sunday else "Non-working Day")
+                single_day_log = {
+                    "id": "holiday",
+                    "date": query_date,
+                    "checkin_time": None,
+                    "checkout_time": None,
+                    "total_hours": 0.0,
+                    "checkin_status": None,
+                    "checkout_status": None,
+                    "day_status": "holiday",
+                    "checkin_note": holiday_name,
+                    "checkout_note": None,
+                    "checkin_photo_url": None,
+                    "checkout_photo_url": None
+                }
 
     return {
         "employee_name": user.name,
@@ -144,6 +207,7 @@ def get_employee_stats(
         "monthly_stats": {
             "total_hours": round(monthly_hours, 2),
             "worked_days": monthly_worked_days,
+            "total_working_days": total_working_days,
             "breakdown": breakdown
         },
         "single_day_detail": single_day_log
