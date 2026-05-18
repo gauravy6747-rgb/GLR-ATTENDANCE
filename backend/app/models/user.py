@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, Float
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -58,6 +58,12 @@ class User(Base):
     is_active = Column(
         Boolean,
         default=True
+    )
+
+    base_salary = Column(
+        Float,
+        default=0.0,
+        nullable=True
     )
 
     created_at = Column(

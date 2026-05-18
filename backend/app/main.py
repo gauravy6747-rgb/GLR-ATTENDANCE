@@ -21,6 +21,15 @@ from app.models.notification import (  # noqa: F401
 # ── Create all tables ───────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
+# ── Safe Database Column Migrations ──────────────────────────────────────────
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS base_salary FLOAT DEFAULT 0.0;"))
+        conn.commit()
+    except Exception as e:
+        print("Safe migration skipped or error:", e)
+
 # ── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="GLR Attendance")
 
@@ -42,7 +51,7 @@ app.add_middleware(
 )
 
 # ── Routers ─────────────────────────────────────────────────────────────────
-from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave  # noqa: E402
+from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave, payroll  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
@@ -53,6 +62,7 @@ app.include_router(export.router)
 app.include_router(employees.router)
 app.include_router(company.router)
 app.include_router(leave.router)
+app.include_router(payroll.router)
 
 
 @app.get("/")

@@ -9,6 +9,7 @@ const navItems = [
   { label: "Locations", path: "/office-locations" },
   { label: "Leave Requests", path: "/leave-requests" },
   { label: "Reports", path: "/reports" },
+  { label: "Payroll", path: "/payroll" },
   { label: "Settings", path: "/settings" }
 ]
 

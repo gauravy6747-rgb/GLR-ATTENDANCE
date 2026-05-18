@@ -9,6 +9,7 @@ import DashboardPage from "./pages/DashboardPage"
 import EmployeesPage from "./pages/EmployeesPage"
 import AttendancePage from "./pages/AttendancePage"
 import ReportsPage from "./pages/ReportsPage"
+import PayrollPage from "./pages/PayrollPage"
 import CompanySettingsPage from "./pages/CompanySettingsPage"
 import LeaveRequestsPage from "./pages/LeaveRequestsPage"
 import LocationsPage from "./pages/LocationsPage"
@@ -150,6 +151,14 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payroll"
+          element={
+            <ProtectedRoute adminOnly>
+              <PayrollPage />
             </ProtectedRoute>
           }
         />

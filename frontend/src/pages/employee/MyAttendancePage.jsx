@@ -4,6 +4,7 @@ import { getMyHistory } from "../../services/attendanceService"
 import api, { getApiErrorMessage } from "../../api/axios"
 import AttendanceCalendar from "../../components/AttendanceCalendar"
 import EmployeeStatsDashboard from "../../components/EmployeeStatsDashboard"
+import EmployeePayrollSlip from "../../components/EmployeePayrollSlip"
 
 function formatDate(value) {
   if (!value) return "-"
@@ -69,27 +70,33 @@ export default function MyAttendancePage() {
           <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
             <button
               onClick={() => setView("calendar")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${view === "calendar" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "calendar" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
               Calendar
             </button>
             <button
               onClick={() => setView("list")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${view === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
               List
             </button>
             <button
               onClick={() => setView("stats")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${view === "stats" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "stats" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
               Stats
+            </button>
+            <button
+              onClick={() => setView("payroll")}
+              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "payroll" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              Payroll
             </button>
           </div>
         </div>
 
         {/* Summary strip */}
-        {!loading && !error && view !== "stats" && records.length > 0 && (
+        {!loading && !error && !["stats", "payroll"].includes(view) && records.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Full Days",  value: fullDays },
@@ -150,6 +157,11 @@ export default function MyAttendancePage() {
         {/* Stats Dashboard View */}
         {!loading && !error && view === "stats" && (
           <EmployeeStatsDashboard />
+        )}
+
+        {/* Payroll Slip View */}
+        {!loading && !error && view === "payroll" && (
+          <EmployeePayrollSlip />
         )}
       </div>
     </EmployeeLayout>
