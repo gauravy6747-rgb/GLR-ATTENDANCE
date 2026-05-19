@@ -98,14 +98,16 @@ def get_employee_stats(
     # 2. Yearly calculations
     yearly_logs = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == target_user_id,
-        extract("year", AttendanceLog.date) == q_year
+        AttendanceLog.date >= date(q_year, 1, 1),
+        AttendanceLog.date <= date(q_year, 12, 31)
     ).all()
 
     yearly_hours = sum(log.total_hours or 0.0 for log in yearly_logs)
     yearly_worked_days = len([log for log in yearly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
 
     yearly_holidays = db.query(Holiday).filter(
-        extract("year", Holiday.date) == q_year
+        Holiday.date >= date(q_year, 1, 1),
+        Holiday.date <= date(q_year, 12, 31)
     ).all()
     yearly_holiday_dates = {h.date for h in yearly_holidays}
 
@@ -119,18 +121,19 @@ def get_employee_stats(
     )
 
     # 3. Monthly calculations
+    num_days = calendar.monthrange(q_year, q_month)[1]
     monthly_logs = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == target_user_id,
-        extract("year", AttendanceLog.date) == q_year,
-        extract("month", AttendanceLog.date) == q_month
+        AttendanceLog.date >= date(q_year, q_month, 1),
+        AttendanceLog.date <= date(q_year, q_month, num_days)
     ).all()
 
     monthly_hours = sum(log.total_hours or 0.0 for log in monthly_logs)
     monthly_worked_days = len([log for log in monthly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
     
     month_holidays = db.query(Holiday).filter(
-        extract("year", Holiday.date) == q_year,
-        extract("month", Holiday.date) == q_month
+        Holiday.date >= date(q_year, q_month, 1),
+        Holiday.date <= date(q_year, q_month, num_days)
     ).all()
     holiday_dates = {h.date for h in month_holidays}
 
