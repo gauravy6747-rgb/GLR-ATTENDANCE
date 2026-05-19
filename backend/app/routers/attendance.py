@@ -275,7 +275,7 @@ def checkout(
             balance = CompOffBalance(user_id=current_user.id)
             db.add(balance)
         
-        amount_earned = 1.0 if total_hours >= 8.0 else (0.5 if total_hours >= 4.0 else 0.0)
+        amount_earned = 1.0 if total_hours >= 8.5 else (0.5 if total_hours >= 4.5 else 0.0)
         balance.days_earned = float(balance.days_earned or 0) + amount_earned
         
         txn = CompOffTransaction(
@@ -283,19 +283,19 @@ def checkout(
             type="earned",
             amount=amount_earned,
             reference_date=today,
-            notes=f"Worked {'full' if total_hours >= 8.0 else 'half' if total_hours >= 4.0 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
+            notes=f"Worked {'full' if total_hours >= 8.5 else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
         )
         db.add(txn)
     else:
-        if total_hours >= 8.0:
+        if total_hours >= 8.5:
             attendance.day_status = "full_day"
-        elif total_hours >= 4.0:
+        elif total_hours >= 4.5:
             attendance.day_status = "half_day"
         else:
             attendance.day_status = "absent"
 
     # Status based on shift completion
-    if total_hours < 8.0:
+    if total_hours < 8.5:
         attendance.checkout_status = "early_leave"
     else:
         attendance.checkout_status = "on_time_out"
@@ -436,7 +436,7 @@ def override_attendance(
             total_seconds = (data.checkout_time - attendance.checkin_time).total_seconds()
             total_hours = round(total_seconds / 3600, 2)
             attendance.total_hours = total_hours
-            if total_hours >= 8.0:
+            if total_hours >= 8.5:
                 attendance.checkout_status = "on_time_out"
             else:
                 attendance.checkout_status = "early_leave"
@@ -463,9 +463,9 @@ def override_attendance(
                 if is_special_day:
                     attendance.day_status = "holiday_work"
                 else:
-                    if total_hours >= 8.0:
+                    if total_hours >= 8.5:
                         attendance.day_status = "full_day"
-                    elif total_hours >= 4.0:
+                    elif total_hours >= 4.5:
                         attendance.day_status = "half_day"
                     else:
                         attendance.day_status = "absent"
