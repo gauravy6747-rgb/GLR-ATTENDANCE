@@ -34,23 +34,35 @@ with engine.connect() as conn:
 # ── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="GLR Attendance")
 
-frontend_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "FRONTEND_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173"
-    ).split(",")
-    if origin.strip()
-]
+# ── Dynamic CORS Middleware ──────────────────────────────────────────────────
+from fastapi import Request
+from starlette.responses import Response
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=frontend_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.taxplanadvisor\.in|https://.*\.glrattendance\.com",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.middleware("http")
+async def dynamic_cors_middleware(request: Request, call_next):
+    # Handle preflight (OPTIONS) requests
+    if request.method == "OPTIONS":
+        response = Response(status_code=204)
+        origin = request.headers.get("origin")
+        if origin:
+            if any(dom in origin for dom in ["vercel.app", "taxplanadvisor.in", "glrattendance.com", "localhost", "127.0.0.1"]):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+        return response
+
+    response = await call_next(request)
+    origin = request.headers.get("origin")
+    if origin:
+        if any(dom in origin for dom in ["vercel.app", "taxplanadvisor.in", "glrattendance.com", "localhost", "127.0.0.1"]):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+            # Expose set-cookie header if needed
+            response.headers["Access-Control-Expose-Headers"] = "Set-Cookie"
+    return response
 
 # ── Routers ─────────────────────────────────────────────────────────────────
 from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave, payroll  # noqa: E402
