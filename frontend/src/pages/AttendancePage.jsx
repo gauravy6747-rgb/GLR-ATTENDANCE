@@ -309,6 +309,7 @@ function AttendancePage() {
                   onChange={(e) => setOverrideData({ ...overrideData, day_status: e.target.value })}
                   className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition"
                 >
+                  <option value="present">Present (Active)</option>
                   <option value="full_day">Full Day</option>
                   <option value="half_day">Half Day</option>
                   <option value="absent">Absent</option>

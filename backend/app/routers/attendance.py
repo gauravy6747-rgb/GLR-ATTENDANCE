@@ -275,7 +275,7 @@ def checkout(
             balance = CompOffBalance(user_id=current_user.id)
             db.add(balance)
         
-        amount_earned = 1.0 if total_hours >= 8.5 else (0.5 if total_hours >= 4.5 else 0.0)
+        amount_earned = 1.0 if total_hours >= 8.0 else (0.5 if total_hours >= 4.0 else 0.0)
         balance.days_earned = float(balance.days_earned or 0) + amount_earned
         
         txn = CompOffTransaction(
@@ -283,19 +283,19 @@ def checkout(
             type="earned",
             amount=amount_earned,
             reference_date=today,
-            notes=f"Worked {'full' if total_hours >= 8.5 else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
+            notes=f"Worked {'full' if total_hours >= 8.0 else 'half' if total_hours >= 4.0 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
         )
         db.add(txn)
     else:
-        if total_hours >= 8.5:
+        if total_hours >= 8.0:
             attendance.day_status = "full_day"
-        elif total_hours >= 4.5:
+        elif total_hours >= 4.0:
             attendance.day_status = "half_day"
         else:
             attendance.day_status = "absent"
 
     # Status based on shift completion
-    if total_hours < 8.5:
+    if total_hours < 8.0:
         attendance.checkout_status = "early_leave"
     else:
         attendance.checkout_status = "on_time_out"
@@ -430,16 +430,51 @@ def override_attendance(
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance record not found")
 
-    attendance.day_status = data.day_status
     if data.checkout_time:
         attendance.checkout_time = data.checkout_time
         if attendance.checkin_time:
             total_seconds = (data.checkout_time - attendance.checkin_time).total_seconds()
-            attendance.total_hours = round(total_seconds / 3600, 2)
-            if attendance.total_hours >= 8.5:
+            total_hours = round(total_seconds / 3600, 2)
+            attendance.total_hours = total_hours
+            if total_hours >= 8.0:
                 attendance.checkout_status = "on_time_out"
             else:
                 attendance.checkout_status = "early_leave"
+                
+            if data.day_status == "present":
+                from app.models.holiday import Holiday
+                from app.models.working_days import WorkingDaysConfig
+                
+                today_date = attendance.date
+                holiday = db.query(Holiday).filter(Holiday.date == today_date).first()
+                working_days = db.query(WorkingDaysConfig).first()
+                is_working_day = True
+                if working_days:
+                    day_of_week = today_date.weekday()
+                    days_map = [
+                        working_days.monday, working_days.tuesday, working_days.wednesday,
+                        working_days.thursday, working_days.friday, working_days.saturday,
+                        working_days.sunday
+                    ]
+                    is_working_day = days_map[day_of_week]
+                is_sunday = today_date.weekday() == 6
+                is_special_day = bool(holiday) or not is_working_day or is_sunday
+                
+                if is_special_day:
+                    attendance.day_status = "holiday_work"
+                else:
+                    if total_hours >= 8.0:
+                        attendance.day_status = "full_day"
+                    elif total_hours >= 4.0:
+                        attendance.day_status = "half_day"
+                    else:
+                        attendance.day_status = "absent"
+            else:
+                attendance.day_status = data.day_status
+        else:
+            attendance.day_status = data.day_status
+    else:
+        attendance.day_status = data.day_status
 
     attendance.is_manual_override = True
     attendance.override_by = current_user.id
