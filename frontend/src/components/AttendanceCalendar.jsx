@@ -47,7 +47,28 @@ export default function AttendanceCalendar({ records, holidays }) {
     days.push(<div key={`empty-${i}`} className="h-10 sm:h-14" />)
   }
 
-  const today = new Date().toISOString().split("T")[0]
+  const getISTTodayStr = () => {
+    const options = {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false
+    };
+    const formatter = new Intl.DateTimeFormat("en-US", options);
+    const parts = formatter.formatToParts(new Date());
+    const partMap = {};
+    parts.forEach(p => partMap[p.type] = p.value);
+    const year = parseInt(partMap.year, 10);
+    const month = parseInt(partMap.month, 10);
+    const day = parseInt(partMap.day, 10);
+    const pad = (num) => String(num).padStart(2, "0");
+    return `${year}-${pad(month)}-${pad(day)}`;
+  };
+  const today = getISTTodayStr()
 
   for (let d = 1; d <= daysInMonth.totalDays; d++) {
     const dateStr = `${daysInMonth.year}-${String(daysInMonth.month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`

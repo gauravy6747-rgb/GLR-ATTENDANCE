@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.attendance import AttendanceLog
 from app.models.holiday import Holiday
 from app.models.working_days import WorkingDaysConfig
+from app.models.payroll import MonthlySalary
 
 router = APIRouter(
     prefix="/payroll",
@@ -21,6 +22,42 @@ router = APIRouter(
 class SalaryUpdateSchema(BaseModel):
     user_id: str
     base_salary: float
+    year: Optional[int] = None
+    month: Optional[int] = None
+
+def get_employee_monthly_salary(db: Session, user_id: str, year: int, month: int, default_salary: float) -> float:
+    # 1. Exact match
+    exact = db.query(MonthlySalary).filter(
+        MonthlySalary.user_id == user_id,
+        MonthlySalary.year == year,
+        MonthlySalary.month == month
+    ).first()
+    if exact:
+        return exact.base_salary
+
+    # 2. Most recent match on or before (year, month)
+    recent = db.query(MonthlySalary).filter(
+        MonthlySalary.user_id == user_id,
+        (MonthlySalary.year < year) | ((MonthlySalary.year == year) & (MonthlySalary.month <= month))
+    ).order_by(
+        MonthlySalary.year.desc(),
+        MonthlySalary.month.desc()
+    ).first()
+    if recent:
+        return recent.base_salary
+
+    # 3. Earliest match overall (if any exists)
+    earliest = db.query(MonthlySalary).filter(
+        MonthlySalary.user_id == user_id
+    ).order_by(
+        MonthlySalary.year.asc(),
+        MonthlySalary.month.asc()
+    ).first()
+    if earliest:
+        return earliest.base_salary
+
+    # 4. Fallback to default user base salary
+    return default_salary or 0.0
 
 @router.get("/summary")
 def get_payroll_summary(
@@ -86,11 +123,11 @@ def get_payroll_summary(
                 paid_leaves += 1.0
 
         total_paid_days = worked_days + paid_leaves
-        base_salary = emp.base_salary or 0.0
+        base_salary = get_employee_monthly_salary(db, emp.id, q_year, q_month, emp.base_salary)
 
         calculated_salary = 0.0
         if total_working_days > 0 and base_salary > 0:
-            calculated_salary = (base_salary / total_working_days) * total_paid_days
+            calculated_salary = ((base_salary / total_working_days) * total_paid_days) * 0.99 # 1% TDS deduction
 
         payroll_records.append({
             "user_id": str(emp.id),
@@ -126,10 +163,34 @@ def update_employee_salary(
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
 
+    from app.utils.timezone import now_ist
+    ist_now = now_ist()
+    q_year = payload.year or ist_now.year
+    q_month = payload.month or ist_now.month
+
+    # Check if a monthly salary record already exists
+    record = db.query(MonthlySalary).filter(
+        MonthlySalary.user_id == emp.id,
+        MonthlySalary.year == q_year,
+        MonthlySalary.month == q_month
+    ).first()
+
+    if record:
+        record.base_salary = payload.base_salary
+    else:
+        record = MonthlySalary(
+            user_id=emp.id,
+            year=q_year,
+            month=q_month,
+            base_salary=payload.base_salary
+        )
+        db.add(record)
+
+    # Also update the user's default base_salary
     emp.base_salary = payload.base_salary
     db.commit()
 
-    return {"message": "Salary updated successfully", "base_salary": emp.base_salary}
+    return {"message": "Salary updated successfully", "base_salary": payload.base_salary}
 
 
 @router.get("/my-slip")
@@ -190,11 +251,11 @@ def get_my_pay_slip(
             paid_leaves += 1.0
 
     total_paid_days = worked_days + paid_leaves
-    base_salary = current_user.base_salary or 0.0
+    base_salary = get_employee_monthly_salary(db, current_user.id, q_year, q_month, current_user.base_salary)
 
     calculated_salary = 0.0
     if total_working_days > 0 and base_salary > 0:
-        calculated_salary = (base_salary / total_working_days) * total_paid_days
+        calculated_salary = ((base_salary / total_working_days) * total_paid_days) * 0.99 # 1% TDS deduction
 
     return {
         "year": q_year,

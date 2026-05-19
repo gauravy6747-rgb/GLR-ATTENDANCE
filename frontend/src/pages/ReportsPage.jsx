@@ -4,16 +4,47 @@ import { downloadAttendanceReport } from "../services/reportService"
 import { getEmployees } from "../services/employeeService"
 import { getApiErrorMessage } from "../api/axios"
 
+const getISTComponents = () => {
+  const options = {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false
+  };
+  const formatter = new Intl.DateTimeFormat("en-US", options);
+  const parts = formatter.formatToParts(new Date());
+  
+  const partMap = {};
+  parts.forEach(p => partMap[p.type] = p.value);
+  
+  const year = parseInt(partMap.year, 10);
+  const month = parseInt(partMap.month, 10); // 1-indexed
+  const day = parseInt(partMap.day, 10);
+  
+  const pad = (num) => String(num).padStart(2, "0");
+  
+  return {
+    year,
+    month,
+    day,
+    dateStr: `${year}-${pad(month)}-${pad(day)}`
+  };
+};
+
 export default function ReportsPage() {
-  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }))
+  const ist = getISTComponents()
   
   const [employees, setEmployees] = useState([])
   const [selectedEmployee, setSelectedEmployee] = useState("")
   const [scope, setScope] = useState("all") // all | date | month
   
-  const [selectedDate, setSelectedDate] = useState(today.toISOString().split("T")[0])
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1)
+  const [selectedDate, setSelectedDate] = useState(ist.dateStr)
+  const [selectedYear, setSelectedYear] = useState(ist.year)
+  const [selectedMonth, setSelectedMonth] = useState(ist.month)
   
   const [downloading, setDownloading] = useState(false)
   const [loadingEmployees, setLoadingEmployees] = useState(true)
@@ -83,7 +114,7 @@ export default function ReportsPage() {
     }
   }
 
-  const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i)
+  const years = Array.from({ length: 5 }, (_, i) => ist.year - i)
   const months = [
     { value: 1, label: "January" },
     { value: 2, label: "February" },

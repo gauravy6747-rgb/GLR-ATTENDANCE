@@ -3,6 +3,37 @@ import AdminLayout from "../layouts/AdminLayout"
 import { getAllAttendance, overrideAttendance } from "../services/attendanceService"
 import { getApiErrorMessage } from "../api/axios"
 
+const getISTComponents = () => {
+  const options = {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false
+  };
+  const formatter = new Intl.DateTimeFormat("en-US", options);
+  const parts = formatter.formatToParts(new Date());
+  
+  const partMap = {};
+  parts.forEach(p => partMap[p.type] = p.value);
+  
+  const year = parseInt(partMap.year, 10);
+  const month = parseInt(partMap.month, 10); // 1-indexed
+  const day = parseInt(partMap.day, 10);
+  
+  const pad = (num) => String(num).padStart(2, "0");
+  
+  return {
+    year,
+    month,
+    day,
+    dateStr: `${year}-${pad(month)}-${pad(day)}`
+  };
+};
+
 function formatDateTime(value) {
   if (!value) return "-"
   return new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
@@ -23,8 +54,12 @@ function formatDate(value) {
 }
 
 function formatHours(value) {
-  const hours = Number(value ?? 0)
-  return `${hours.toFixed(2)} hrs`
+  const totalHours = Number(value ?? 0)
+  const hrs = Math.floor(totalHours)
+  const mins = Math.round((totalHours - hrs) * 60)
+  const finalMins = mins === 60 ? 0 : mins
+  const finalHrs = mins === 60 ? hrs + 1 : hrs
+  return `${finalHrs} hrs ${finalMins} mins`
 }
 
 function formatStatus(value) {
@@ -54,13 +89,15 @@ function AttendancePage() {
   const [error, setError] = useState("")
   // Use IST date as the default so the admin sees today's records in Indian time
   const [selectedDate, setSelectedDate] = useState(() => {
-    const istNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }))
-    return istNow.toISOString().split("T")[0]
+    const ist = getISTComponents()
+    return ist.dateStr
   })
 
   // Override Modal State
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [overrideData, setOverrideData] = useState({ day_status: "present", admin_note: "" })
+  const [manualCheckoutEnabled, setManualCheckoutEnabled] = useState(false)
+  const [manualCheckoutTime, setManualCheckoutTime] = useState("18:00")
   const [submitting, setSubmitting] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
 
@@ -76,13 +113,24 @@ function AttendancePage() {
     fetchRecords()
   }, [selectedDate])
 
+  const handleOverrideClick = (record) => {
+    setSelectedRecord(record)
+    setOverrideData({ day_status: record.day_status || "present", admin_note: "" })
+    setManualCheckoutEnabled(false)
+    setManualCheckoutTime("18:00")
+  }
+
   const handleOverrideSubmit = async (e) => {
     e.preventDefault()
     if (!overrideData.admin_note) return alert("Please provide a reason for the override")
     
     setSubmitting(true)
     try {
-      await overrideAttendance(selectedRecord.id, overrideData)
+      const payload = { ...overrideData }
+      if (manualCheckoutEnabled && !selectedRecord.checkout_time) {
+        payload.checkout_time = `${selectedRecord.date}T${manualCheckoutTime}:00`
+      }
+      await overrideAttendance(selectedRecord.id, payload)
       setSelectedRecord(null)
       setOverrideData({ day_status: "present", admin_note: "" })
       fetchRecords()
@@ -162,7 +210,9 @@ function AttendancePage() {
                     </td>
                     <td className="p-4">
                       <div className="text-sm font-medium text-gray-900">{formatTimeOnly(record.checkout_time)}</div>
-                      <div className="text-[10px] text-gray-400 font-semibold uppercase">{record.checkout_status}</div>
+                      <div className="text-[10px] text-gray-400 font-semibold uppercase">
+                        {record.checkout_status} {record.total_hours > 0 && `• ${formatHours(record.total_hours)}`}
+                      </div>
                     </td>
                     <td className="p-4 text-center">
                       <StatusBadge value={record.day_status} />
@@ -228,7 +278,7 @@ function AttendancePage() {
                     </td>
                     <td className="p-4 text-right">
                       <button
-                        onClick={() => setSelectedRecord(record)}
+                        onClick={() => handleOverrideClick(record)}
                         className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-200 transition"
                       >
                         Override
@@ -265,6 +315,34 @@ function AttendancePage() {
                   <option value="holiday_work">Holiday Work</option>
                 </select>
               </div>
+
+              {!selectedRecord.checkout_time && (
+                <div className="border border-gray-150 bg-gray-50 rounded-xl p-3.5 space-y-3 shadow-inner">
+                  <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={manualCheckoutEnabled}
+                      onChange={(e) => setManualCheckoutEnabled(e.target.checked)}
+                      className="rounded border-gray-350 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    />
+                    <span>Force Check-Out (Forgot to check out)</span>
+                  </label>
+                  
+                  {manualCheckoutEnabled && (
+                    <div className="pt-2 border-t border-gray-200">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                        Select Check-Out Time
+                      </label>
+                      <input
+                        type="time"
+                        value={manualCheckoutTime}
+                        onChange={(e) => setManualCheckoutTime(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reason (Mandatory)</label>

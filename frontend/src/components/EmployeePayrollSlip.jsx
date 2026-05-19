@@ -1,11 +1,42 @@
 import { useEffect, useState } from "react"
 import api, { getApiErrorMessage } from "../api/axios"
 
-export default function EmployeePayrollSlip() {
-  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }))
+const getISTComponents = () => {
+  const options = {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false
+  };
+  const formatter = new Intl.DateTimeFormat("en-US", options);
+  const parts = formatter.formatToParts(new Date());
   
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1)
+  const partMap = {};
+  parts.forEach(p => partMap[p.type] = p.value);
+  
+  const year = parseInt(partMap.year, 10);
+  const month = parseInt(partMap.month, 10); // 1-indexed
+  const day = parseInt(partMap.day, 10);
+  
+  const pad = (num) => String(num).padStart(2, "0");
+  
+  return {
+    year,
+    month,
+    day,
+    dateStr: `${year}-${pad(month)}-${pad(day)}`
+  };
+};
+
+export default function EmployeePayrollSlip() {
+  const ist = getISTComponents()
+  
+  const [year, setYear] = useState(ist.year)
+  const [month, setMonth] = useState(ist.month)
   const [slip, setSlip] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -29,7 +60,7 @@ export default function EmployeePayrollSlip() {
     fetchSlip()
   }, [year, month])
 
-  const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i)
+  const years = Array.from({ length: 5 }, (_, i) => ist.year - i)
   const months = [
     { value: 1, label: "January" },
     { value: 2, label: "February" },
@@ -145,7 +176,7 @@ export default function EmployeePayrollSlip() {
             <div className="rounded-xl border border-dashed border-gray-200 p-4 text-[10px] text-gray-400 font-semibold leading-relaxed space-y-1">
               <p className="uppercase tracking-wider text-gray-900">💡 Calculation Logic</p>
               <p>1. Your base monthly salary is decided first by the administrator.</p>
-              <p>2. Calculated Salary = (Base Monthly Salary / Total Working Days in Month) * Total Paid Days.</p>
+              <p>2. Calculated Salary = ((Base Monthly Salary / Total Working Days in Month) * Total Paid Days) * 0.99 [1% TDS Deducted].</p>
               <p>3. Paid Days includes full days worked, half days worked (0.5 days each), and paid comp-off leaves taken.</p>
             </div>
           </div>

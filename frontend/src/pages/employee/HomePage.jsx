@@ -58,6 +58,15 @@ function formatTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
+function formatHours(value) {
+  const totalHours = Number(value ?? 0)
+  const hrs = Math.floor(totalHours)
+  const mins = Math.round((totalHours - hrs) * 60)
+  const finalMins = mins === 60 ? 0 : mins
+  const finalHrs = mins === 60 ? hrs + 1 : hrs
+  return `${finalHrs} hrs ${finalMins} mins`
+}
+
 function StatusBadge({ status }) {
   const map = {
     full_day: { label: "Full Day", cls: "bg-emerald-100 text-emerald-700" },
@@ -402,7 +411,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-500">Hours</p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {today?.total_hours ? `${Number(today.total_hours).toFixed(2)} hrs` : "--"}
+                  {today?.total_hours ? formatHours(today.total_hours) : "--"}
                 </p>
               </div>
               {today?.checkin_status && (
@@ -451,7 +460,7 @@ export default function HomePage() {
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
                 <p className="text-sm font-semibold text-gray-500">All done for today!</p>
                 <p className="mt-1 text-2xl font-bold text-gray-950">
-                  {Number(today.total_hours).toFixed(2)} hrs worked
+                  {formatHours(today.total_hours)} worked
                 </p>
                 <div className="mt-3">
                   <StatusBadge status={today.day_status} />

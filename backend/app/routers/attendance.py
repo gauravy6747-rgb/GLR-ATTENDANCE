@@ -275,7 +275,7 @@ def checkout(
             balance = CompOffBalance(user_id=current_user.id)
             db.add(balance)
         
-        amount_earned = 1.0 if total_hours >= 9.0 else 0.5
+        amount_earned = 1.0 if total_hours >= 8.5 else (0.5 if total_hours >= 4.5 else 0.0)
         balance.days_earned = float(balance.days_earned or 0) + amount_earned
         
         txn = CompOffTransaction(
@@ -283,17 +283,19 @@ def checkout(
             type="earned",
             amount=amount_earned,
             reference_date=today,
-            notes=f"Worked {'full' if total_hours >= 9.0 else 'half'} day ({total_hours} hrs) on a holiday/weekend"
+            notes=f"Worked {'full' if total_hours >= 8.5 else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
         )
         db.add(txn)
     else:
-        if total_hours >= 9.0:
+        if total_hours >= 8.5:
             attendance.day_status = "full_day"
-        else:
+        elif total_hours >= 4.5:
             attendance.day_status = "half_day"
+        else:
+            attendance.day_status = "absent"
 
     # Status based on shift completion
-    if total_hours < 9.0:
+    if total_hours < 8.5:
         attendance.checkout_status = "early_leave"
     else:
         attendance.checkout_status = "on_time_out"
@@ -429,6 +431,16 @@ def override_attendance(
         raise HTTPException(status_code=404, detail="Attendance record not found")
 
     attendance.day_status = data.day_status
+    if data.checkout_time:
+        attendance.checkout_time = data.checkout_time
+        if attendance.checkin_time:
+            total_seconds = (data.checkout_time - attendance.checkin_time).total_seconds()
+            attendance.total_hours = round(total_seconds / 3600, 2)
+            if attendance.total_hours >= 8.5:
+                attendance.checkout_status = "on_time_out"
+            else:
+                attendance.checkout_status = "early_leave"
+
     attendance.is_manual_override = True
     attendance.override_by = current_user.id
     attendance.override_at = now_ist()

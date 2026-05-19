@@ -18,6 +18,15 @@ function formatTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
+function formatHours(value) {
+  const totalHours = Number(value ?? 0)
+  const hrs = Math.floor(totalHours)
+  const mins = Math.round((totalHours - hrs) * 60)
+  const finalMins = mins === 60 ? 0 : mins
+  const finalHrs = mins === 60 ? hrs + 1 : hrs
+  return `${finalHrs} hrs ${finalMins} mins`
+}
+
 const statusConfig = {
   full_day:      { label: "Full Day",     cls: "bg-emerald-100 text-emerald-700" },
   half_day:      { label: "Half Day",     cls: "bg-amber-100 text-amber-700" },
@@ -138,7 +147,7 @@ export default function MyAttendancePage() {
                     </div>
                     {record.total_hours > 0 && (
                       <p className="mt-1 text-[10px] font-bold uppercase text-gray-400">
-                        {Number(record.total_hours).toFixed(2)} hrs worked
+                        {formatHours(record.total_hours)} worked
                       </p>
                     )}
                     {record.checkin_note && (

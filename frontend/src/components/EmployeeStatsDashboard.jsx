@@ -1,15 +1,55 @@
 import { useEffect, useState } from "react"
 import api, { getApiErrorMessage } from "../api/axios"
 
+const getISTComponents = () => {
+  const options = {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false
+  };
+  const formatter = new Intl.DateTimeFormat("en-US", options);
+  const parts = formatter.formatToParts(new Date());
+  
+  const partMap = {};
+  parts.forEach(p => partMap[p.type] = p.value);
+  
+  const year = parseInt(partMap.year, 10);
+  const month = parseInt(partMap.month, 10); // 1-indexed
+  const day = parseInt(partMap.day, 10);
+  
+  const pad = (num) => String(num).padStart(2, "0");
+  
+  return {
+    year,
+    month,
+    day,
+    dateStr: `${year}-${pad(month)}-${pad(day)}`
+  };
+};
+
+function formatHours(value) {
+  const totalHours = Number(value ?? 0)
+  const hrs = Math.floor(totalHours)
+  const mins = Math.round((totalHours - hrs) * 60)
+  const finalMins = mins === 60 ? 0 : mins
+  const finalHrs = mins === 60 ? hrs + 1 : hrs
+  return `${finalHrs} hrs ${finalMins} mins`
+}
+
 export default function EmployeeStatsDashboard({ user_id = null }) {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }))
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1)
-  const [selectedDate, setSelectedDate] = useState(today.toISOString().split("T")[0])
+  const ist = getISTComponents()
+  const [year, setYear] = useState(ist.year)
+  const [month, setMonth] = useState(ist.month)
+  const [selectedDate, setSelectedDate] = useState(ist.dateStr)
 
   const fetchStats = () => {
     setLoading(true)
@@ -30,7 +70,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
     fetchStats()
   }, [year, month, selectedDate, user_id])
 
-  const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i)
+  const years = Array.from({ length: 5 }, (_, i) => ist.year - i)
   const months = [
     { value: 1, label: "January" },
     { value: 2, label: "February" },
@@ -145,7 +185,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Days Worked</p>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                    <p className="text-2xl font-black text-emerald-600">{stats.yearly_stats.total_hours}h</p>
+                    <p className="text-2xl font-black text-emerald-600">{formatHours(stats.yearly_stats.total_hours)}</p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Hours Logged</p>
                   </div>
                 </div>
@@ -170,7 +210,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Days Worked</p>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                    <p className="text-2xl font-black text-emerald-600">{stats.monthly_stats.total_hours}h</p>
+                    <p className="text-2xl font-black text-emerald-600">{formatHours(stats.monthly_stats.total_hours)}</p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Hours Logged</p>
                   </div>
                 </div>
@@ -248,7 +288,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                         <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
                           <p className="text-xs font-bold uppercase text-gray-400">Hours Worked</p>
                           <p className="text-lg font-bold text-emerald-600 mt-1">
-                            {stats.single_day_detail.total_hours ? `${Number(stats.single_day_detail.total_hours).toFixed(2)} hrs` : "--"}
+                            {stats.single_day_detail.total_hours ? formatHours(stats.single_day_detail.total_hours) : "--"}
                           </p>
                           <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">Calculated active time</p>
                         </div>
