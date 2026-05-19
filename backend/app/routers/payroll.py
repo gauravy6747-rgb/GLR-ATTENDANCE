@@ -111,11 +111,11 @@ def get_payroll_summary(
             extract("month", AttendanceLog.date) == q_month
         ).all()
 
-        # Calculate worked days: full_day/present/holiday_work count as 1.0, half_day count as 0.5
+        # Calculate worked days: full_day/holiday_work count as 1.0, half_day count as 0.5 (active 'present' check-ins count as 0 until checkout)
         worked_days = 0.0
         paid_leaves = 0.0
         for log in logs:
-            if log.day_status in ["full_day", "present", "holiday_work"]:
+            if log.day_status in ["full_day", "holiday_work"]:
                 worked_days += 1.0
             elif log.day_status == "half_day":
                 worked_days += 0.5
@@ -243,7 +243,7 @@ def get_my_pay_slip(
     worked_days = 0.0
     paid_leaves = 0.0
     for log in logs:
-        if log.day_status in ["full_day", "present", "holiday_work"]:
+        if log.day_status in ["full_day", "holiday_work"]:
             worked_days += 1.0
         elif log.day_status == "half_day":
             worked_days += 0.5
