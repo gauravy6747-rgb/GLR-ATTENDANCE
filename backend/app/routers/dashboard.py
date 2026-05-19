@@ -109,17 +109,14 @@ def get_employee_stats(
     ).all()
     yearly_holiday_dates = {h.date for h in yearly_holidays}
 
-    total_yearly_working_days = 0
-    curr_d = date(q_year, 1, 1)
-    end_date = date(q_year, 12, 31)
-    while curr_d <= end_date:
-        is_sun = curr_d.weekday() == 6
-        is_hol = curr_d in yearly_holiday_dates
-        is_work_configured = days_map[curr_d.weekday()]
-
-        if is_work_configured and not is_sun and not is_hol:
-            total_yearly_working_days += 1
-        curr_d = date.fromordinal(curr_d.toordinal() + 1)
+    import datetime
+    start_date = datetime.date(q_year, 1, 1)
+    num_days_year = 366 if calendar.isleap(q_year) else 365
+    all_dates = [start_date + datetime.timedelta(days=i) for i in range(num_days_year)]
+    total_yearly_working_days = sum(
+        1 for d in all_dates
+        if days_map[d.weekday()] and d.weekday() != 6 and d not in yearly_holiday_dates
+    )
 
     # 3. Monthly calculations
     monthly_logs = db.query(AttendanceLog).filter(
@@ -138,15 +135,11 @@ def get_employee_stats(
     holiday_dates = {h.date for h in month_holidays}
 
     num_days = calendar.monthrange(q_year, q_month)[1]
-    total_working_days = 0
-    for day_num in range(1, num_days + 1):
-        d = date(q_year, q_month, day_num)
-        is_sun = d.weekday() == 6
-        is_hol = d in holiday_dates
-        is_work_configured = days_map[d.weekday()]
-
-        if is_work_configured and not is_sun and not is_hol:
-            total_working_days += 1
+    month_dates = [date(q_year, q_month, day_num) for day_num in range(1, num_days + 1)]
+    total_working_days = sum(
+        1 for d in month_dates
+        if days_map[d.weekday()] and d.weekday() != 6 and d not in holiday_dates
+    )
 
     # Breakdown of statuses in month
     breakdown = {
