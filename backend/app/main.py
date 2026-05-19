@@ -19,17 +19,17 @@ from app.models.notification import (  # noqa: F401
     FaceVerificationFailure
 )
 
-# ── Create all tables ───────────────────────────────────────────────────────
-Base.metadata.create_all(bind=engine)
+# ── Create all tables (Already created, bypassed for near-instant startup) ──
+# Base.metadata.create_all(bind=engine)
 
-# ── Safe Database Column Migrations ──────────────────────────────────────────
-from sqlalchemy import text
-with engine.connect() as conn:
-    try:
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS base_salary FLOAT DEFAULT 0.0;"))
-        conn.commit()
-    except Exception as e:
-        print("Safe migration skipped or error:", e)
+# ── Safe Database Column Migrations (Bypassed for near-instant startup) ─────
+# from sqlalchemy import text
+# with engine.connect() as conn:
+#     try:
+#         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS base_salary FLOAT DEFAULT 0.0;"))
+#         conn.commit()
+#     except Exception as e:
+#         print("Safe migration skipped or error:", e)
 
 # ── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="GLR Attendance")
