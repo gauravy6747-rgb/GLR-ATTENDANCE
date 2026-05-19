@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("ACCESS_TOKEN_EXPIRE_DAYS", 7))
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() == "true"
-COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "none").lower()
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax").lower()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
