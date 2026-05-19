@@ -44,12 +44,17 @@ def export_attendance_excel(
         except ValueError:
             pass
     elif year and month:
+        import calendar
+        num_days = calendar.monthrange(year, month)[1]
         query = query.filter(
-            extract('year', AttendanceLog.date) == year,
-            extract('month', AttendanceLog.date) == month
+            AttendanceLog.date >= date(year, month, 1),
+            AttendanceLog.date <= date(year, month, num_days)
         )
     elif year:
-        query = query.filter(extract('year', AttendanceLog.date) == year)
+        query = query.filter(
+            AttendanceLog.date >= date(year, 1, 1),
+            AttendanceLog.date <= date(year, 12, 31)
+        )
 
     if employee_id:
         from uuid import UUID

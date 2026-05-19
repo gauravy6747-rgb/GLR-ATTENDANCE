@@ -80,15 +80,16 @@ def get_payroll_summary(
             working_days_cfg.sunday
         ]
 
+    # Count dynamic working days in this month
+    num_days = calendar.monthrange(q_year, q_month)[1]
+
     # Get holidays in this month
     month_holidays = db.query(Holiday).filter(
-        extract("year", Holiday.date) == q_year,
-        extract("month", Holiday.date) == q_month
+        Holiday.date >= date(q_year, q_month, 1),
+        Holiday.date <= date(q_year, q_month, num_days)
     ).all()
     holiday_dates = {h.date for h in month_holidays}
 
-    # Count dynamic working days in this month
-    num_days = calendar.monthrange(q_year, q_month)[1]
     total_working_days = 0
     for day_num in range(1, num_days + 1):
         d = date(q_year, q_month, day_num)
@@ -107,8 +108,8 @@ def get_payroll_summary(
         # Fetch logs for this user in this month
         logs = db.query(AttendanceLog).filter(
             AttendanceLog.user_id == emp.id,
-            extract("year", AttendanceLog.date) == q_year,
-            extract("month", AttendanceLog.date) == q_month
+            AttendanceLog.date >= date(q_year, q_month, 1),
+            AttendanceLog.date <= date(q_year, q_month, num_days)
         ).all()
 
         # Calculate worked days: full_day/holiday_work count as 1.0, half_day count as 0.5 (active 'present' check-ins count as 0 until checkout)
@@ -214,15 +215,16 @@ def get_my_pay_slip(
             working_days_cfg.sunday
         ]
 
+    # Count dynamic working days in this month
+    num_days = calendar.monthrange(q_year, q_month)[1]
+
     # Get holidays in this month
     month_holidays = db.query(Holiday).filter(
-        extract("year", Holiday.date) == q_year,
-        extract("month", Holiday.date) == q_month
+        Holiday.date >= date(q_year, q_month, 1),
+        Holiday.date <= date(q_year, q_month, num_days)
     ).all()
     holiday_dates = {h.date for h in month_holidays}
 
-    # Count dynamic working days in this month
-    num_days = calendar.monthrange(q_year, q_month)[1]
     total_working_days = 0
     for day_num in range(1, num_days + 1):
         d = date(q_year, q_month, day_num)
@@ -236,8 +238,8 @@ def get_my_pay_slip(
     # Fetch logs for this user in this month
     logs = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == current_user.id,
-        extract("year", AttendanceLog.date) == q_year,
-        extract("month", AttendanceLog.date) == q_month
+        AttendanceLog.date >= date(q_year, q_month, 1),
+        AttendanceLog.date <= date(q_year, q_month, num_days)
     ).all()
 
     worked_days = 0.0
