@@ -115,7 +115,14 @@ function AttendancePage() {
   const handleOverrideClick = (record) => {
     setSelectedRecord(record)
     setOverrideData({ day_status: record.day_status || "present", admin_note: "" })
-    setManualCheckoutTime("18:00")
+    
+    if (record.checkout_time) {
+      const date = new Date(record.checkout_time)
+      const pad = (n) => String(n).padStart(2, "0")
+      setManualCheckoutTime(`${pad(date.getHours())}:${pad(date.getMinutes())}`)
+    } else {
+      setManualCheckoutTime("18:00")
+    }
   }
 
   const handleOverrideSubmit = async (e) => {
@@ -125,8 +132,10 @@ function AttendancePage() {
     setSubmitting(true)
     try {
       const payload = { ...overrideData }
-      if (!selectedRecord.checkout_time) {
+      if (overrideData.day_status !== "present") {
         payload.checkout_time = `${selectedRecord.date}T${manualCheckoutTime}:00`
+      } else {
+        payload.checkout_time = null
       }
       await overrideAttendance(selectedRecord.id, payload)
       setSelectedRecord(null)
@@ -315,10 +324,10 @@ function AttendancePage() {
                 </select>
               </div>
 
-              {!selectedRecord.checkout_time && (
+              {overrideData.day_status !== "present" && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Forced Check-Out Time (Required)
+                    Check-Out Time (Required)
                   </label>
                   <input
                     type="time"
