@@ -96,7 +96,6 @@ function AttendancePage() {
   // Override Modal State
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [overrideData, setOverrideData] = useState({ day_status: "present", admin_note: "" })
-  const [manualCheckoutEnabled, setManualCheckoutEnabled] = useState(false)
   const [manualCheckoutTime, setManualCheckoutTime] = useState("18:00")
   const [submitting, setSubmitting] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
@@ -116,7 +115,6 @@ function AttendancePage() {
   const handleOverrideClick = (record) => {
     setSelectedRecord(record)
     setOverrideData({ day_status: record.day_status || "present", admin_note: "" })
-    setManualCheckoutEnabled(false)
     setManualCheckoutTime("18:00")
   }
 
@@ -127,7 +125,7 @@ function AttendancePage() {
     setSubmitting(true)
     try {
       const payload = { ...overrideData }
-      if (manualCheckoutEnabled && !selectedRecord.checkout_time) {
+      if (!selectedRecord.checkout_time) {
         payload.checkout_time = `${selectedRecord.date}T${manualCheckoutTime}:00`
       }
       await overrideAttendance(selectedRecord.id, payload)
@@ -318,30 +316,17 @@ function AttendancePage() {
               </div>
 
               {!selectedRecord.checkout_time && (
-                <div className="border border-gray-150 bg-gray-50 rounded-xl p-3.5 space-y-3 shadow-inner">
-                  <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={manualCheckoutEnabled}
-                      onChange={(e) => setManualCheckoutEnabled(e.target.checked)}
-                      className="rounded border-gray-350 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                    />
-                    <span>Force Check-Out (Forgot to check out)</span>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Forced Check-Out Time (Required)
                   </label>
-                  
-                  {manualCheckoutEnabled && (
-                    <div className="pt-2 border-t border-gray-200">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                        Select Check-Out Time
-                      </label>
-                      <input
-                        type="time"
-                        value={manualCheckoutTime}
-                        onChange={(e) => setManualCheckoutTime(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition"
-                      />
-                    </div>
-                  )}
+                  <input
+                    type="time"
+                    required
+                    value={manualCheckoutTime}
+                    onChange={(e) => setManualCheckoutTime(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition font-semibold"
+                  />
                 </div>
               )}
 
