@@ -246,7 +246,11 @@ def checkout(
     attendance.checkout_note = location_data.note
     attendance.checkout_face_score = face_result["score"]
 
-    total_seconds = (now - attendance.checkin_time).total_seconds()
+    # Defensively strip any tzinfo from the DB-returned checkin_time so both
+    # sides of the subtraction are naive IST datetimes — prevents wrong durations
+    # if the DB driver (psycopg2/Neon) returns a timezone-aware datetime.
+    checkin_naive = attendance.checkin_time.replace(tzinfo=None)
+    total_seconds = (now - checkin_naive).total_seconds()
     total_hours = round(total_seconds / 3600, 2)
     attendance.total_hours = total_hours
 
@@ -433,7 +437,10 @@ def override_attendance(
     if data.checkout_time:
         attendance.checkout_time = data.checkout_time
         if attendance.checkin_time:
-            total_seconds = (data.checkout_time - attendance.checkin_time).total_seconds()
+            # Defensively strip tzinfo from both sides before subtracting
+            checkout_naive = data.checkout_time.replace(tzinfo=None)
+            checkin_naive = attendance.checkin_time.replace(tzinfo=None)
+            total_seconds = (checkout_naive - checkin_naive).total_seconds()
             total_hours = round(total_seconds / 3600, 2)
             attendance.total_hours = total_hours
             if total_hours >= 8.5:
