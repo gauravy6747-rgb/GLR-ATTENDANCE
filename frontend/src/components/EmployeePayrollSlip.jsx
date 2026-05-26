@@ -138,7 +138,7 @@ export default function EmployeePayrollSlip() {
                 ₹{slip.calculated_salary ? slip.calculated_salary.toLocaleString("en-IN") : "0.00"}
               </p>
               <p className="text-[9px] text-gray-400 font-semibold uppercase mt-1">
-                Based on {slip.total_paid_days} paid days out of {slip.total_working_days} working days
+                Based on {slip.total_paid_days} paid days out of {slip.total_working_days} days (Fixed Month)
               </p>
             </div>
 
@@ -152,8 +152,8 @@ export default function EmployeePayrollSlip() {
               </div>
 
               <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
-                <span className="text-xs font-bold text-gray-400 uppercase">Working Days</span>
-                <span className="text-sm font-black text-gray-900">{slip.total_working_days} days</span>
+                <span className="text-xs font-bold text-gray-400 uppercase">Calculation Days</span>
+                <span className="text-sm font-black text-gray-900">{slip.total_working_days} days (Fixed)</span>
               </div>
 
               <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
@@ -167,7 +167,7 @@ export default function EmployeePayrollSlip() {
               </div>
 
               <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
-                <span className="text-xs font-bold text-gray-400 uppercase">Total Paid Days</span>
+                <span className="text-xs font-bold text-gray-400 uppercase">Total Paid Billing Days</span>
                 <span className="text-sm font-black text-gray-900">{slip.total_paid_days} days</span>
               </div>
             </div>
@@ -176,8 +176,8 @@ export default function EmployeePayrollSlip() {
             <div className="rounded-xl border border-dashed border-gray-200 p-4 text-[10px] text-gray-400 font-semibold leading-relaxed space-y-1">
               <p className="uppercase tracking-wider text-gray-900">💡 Calculation Logic</p>
               <p>1. Your base monthly salary is decided first by the administrator.</p>
-              <p>2. Calculated Salary = ((Base Monthly Salary / Total Working Days in Month) * Total Paid Days) * 0.99 [1% TDS Deducted].</p>
-              <p>3. Paid Days includes full days worked, half days worked (0.5 days each), and paid comp-off leaves taken.</p>
+              <p>2. Calculated Salary = ((Base Monthly Salary / 30.0) * Paid Billing Days) * 0.99 [1% TDS Deducted].</p>
+              <p>3. Paid Billing Days = 30.0 - (Absent Days / Half Days on expected working days). Weekends and configured holidays are fully paid!</p>
             </div>
           </div>
         </div>

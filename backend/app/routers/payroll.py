@@ -90,15 +90,9 @@ def get_payroll_summary(
     ).all()
     holiday_dates = {h.date for h in month_holidays}
 
-    total_working_days = 0
-    for day_num in range(1, num_days + 1):
-        d = date(q_year, q_month, day_num)
-        is_sun = d.weekday() == 6
-        is_hol = d in holiday_dates
-        is_work_configured = days_map[d.weekday()]
-
-        if is_work_configured and not is_sun and not is_hol:
-            total_working_days += 1
+    from app.utils.timezone import now_ist
+    ist_now = now_ist()
+    current_date_ist = ist_now.date()
 
     # Fetch all employees (everyone except the core system administrator)
     employees = db.query(User).filter(User.email != "admin@glrattendance.com").order_by(User.name).all()
@@ -112,23 +106,46 @@ def get_payroll_summary(
             AttendanceLog.date <= date(q_year, q_month, num_days)
         ).all()
 
-        # Calculate worked days: full_day/holiday_work count as 1.0, half_day count as 0.5 (active 'present' check-ins count as 0 until checkout)
+        log_by_date = {log.date: log for log in logs}
+
+        total_deductions = 0.0
         worked_days = 0.0
         paid_leaves = 0.0
-        for log in logs:
-            if log.day_status in ["full_day", "holiday_work"]:
-                worked_days += 1.0
-            elif log.day_status == "half_day":
-                worked_days += 0.5
-            elif log.day_status == "comp_off_leave":
-                paid_leaves += 1.0
 
-        total_paid_days = worked_days + paid_leaves
+        for day_num in range(1, num_days + 1):
+            d = date(q_year, q_month, day_num)
+            is_sun = d.weekday() == 6
+            is_hol = d in holiday_dates
+            is_work_configured = days_map[d.weekday()]
+
+            # Is it an expected working day?
+            is_expected_working_day = is_work_configured and not is_sun and not is_hol
+
+            log = log_by_date.get(d)
+            if log:
+                if log.day_status in ["full_day", "holiday_work"]:
+                    worked_days += 1.0
+                elif log.day_status == "half_day":
+                    worked_days += 0.5
+                    if is_expected_working_day:
+                        total_deductions += 0.5
+                elif log.day_status == "comp_off_leave":
+                    paid_leaves += 1.0
+                elif log.day_status == "absent":
+                    if is_expected_working_day:
+                        total_deductions += 1.0
+            else:
+                # No log on an expected working day is considered absent (only for past or current days)
+                if is_expected_working_day and d <= current_date_ist:
+                    total_deductions += 1.0
+
+        # Fixed 30 days billing: paid days is 30 minus deductions, capped at 0
+        total_paid_days = max(0.0, 30.0 - total_deductions)
         base_salary = get_employee_monthly_salary(db, emp.id, q_year, q_month, emp.base_salary)
 
         calculated_salary = 0.0
-        if total_working_days > 0 and base_salary > 0:
-            calculated_salary = ((base_salary / total_working_days) * total_paid_days) * 0.99 # 1% TDS deduction
+        if base_salary > 0:
+            calculated_salary = ((base_salary / 30.0) * total_paid_days) * 0.99 # 1% TDS deduction
 
         payroll_records.append({
             "user_id": str(emp.id),
@@ -136,7 +153,7 @@ def get_payroll_summary(
             "name": emp.name,
             "email": emp.email,
             "base_salary": base_salary,
-            "total_working_days": total_working_days,
+            "total_working_days": 30, # fixed 30 days
             "worked_days": worked_days,
             "paid_leaves": paid_leaves,
             "total_paid_days": total_paid_days,
@@ -146,7 +163,7 @@ def get_payroll_summary(
     return {
         "year": q_year,
         "month": q_month,
-        "total_working_days": total_working_days,
+        "total_working_days": 30, # fixed 30 days
         "records": payroll_records
     }
 
@@ -225,15 +242,9 @@ def get_my_pay_slip(
     ).all()
     holiday_dates = {h.date for h in month_holidays}
 
-    total_working_days = 0
-    for day_num in range(1, num_days + 1):
-        d = date(q_year, q_month, day_num)
-        is_sun = d.weekday() == 6
-        is_hol = d in holiday_dates
-        is_work_configured = days_map[d.weekday()]
-
-        if is_work_configured and not is_sun and not is_hol:
-            total_working_days += 1
+    from app.utils.timezone import now_ist
+    ist_now = now_ist()
+    current_date_ist = ist_now.date()
 
     # Fetch logs for this user in this month
     logs = db.query(AttendanceLog).filter(
@@ -242,28 +253,52 @@ def get_my_pay_slip(
         AttendanceLog.date <= date(q_year, q_month, num_days)
     ).all()
 
+    log_by_date = {log.date: log for log in logs}
+
+    total_deductions = 0.0
     worked_days = 0.0
     paid_leaves = 0.0
-    for log in logs:
-        if log.day_status in ["full_day", "holiday_work"]:
-            worked_days += 1.0
-        elif log.day_status == "half_day":
-            worked_days += 0.5
-        elif log.day_status == "comp_off_leave":
-            paid_leaves += 1.0
 
-    total_paid_days = worked_days + paid_leaves
+    for day_num in range(1, num_days + 1):
+        d = date(q_year, q_month, day_num)
+        is_sun = d.weekday() == 6
+        is_hol = d in holiday_dates
+        is_work_configured = days_map[d.weekday()]
+
+        # Is it an expected working day?
+        is_expected_working_day = is_work_configured and not is_sun and not is_hol
+
+        log = log_by_date.get(d)
+        if log:
+            if log.day_status in ["full_day", "holiday_work"]:
+                worked_days += 1.0
+            elif log.day_status == "half_day":
+                worked_days += 0.5
+                if is_expected_working_day:
+                    total_deductions += 0.5
+            elif log.day_status == "comp_off_leave":
+                paid_leaves += 1.0
+            elif log.day_status == "absent":
+                if is_expected_working_day:
+                    total_deductions += 1.0
+        else:
+            # No log on an expected working day is considered absent (only for past or current days)
+            if is_expected_working_day and d <= current_date_ist:
+                total_deductions += 1.0
+
+    # Fixed 30 days billing: paid days is 30 minus deductions, capped at 0
+    total_paid_days = max(0.0, 30.0 - total_deductions)
     base_salary = get_employee_monthly_salary(db, current_user.id, q_year, q_month, current_user.base_salary)
 
     calculated_salary = 0.0
-    if total_working_days > 0 and base_salary > 0:
-        calculated_salary = ((base_salary / total_working_days) * total_paid_days) * 0.99 # 1% TDS deduction
+    if base_salary > 0:
+        calculated_salary = ((base_salary / 30.0) * total_paid_days) * 0.99 # 1% TDS deduction
 
     return {
         "year": q_year,
         "month": q_month,
         "base_salary": base_salary,
-        "total_working_days": total_working_days,
+        "total_working_days": 30, # fixed 30 days
         "worked_days": worked_days,
         "paid_leaves": paid_leaves,
         "total_paid_days": total_paid_days,
