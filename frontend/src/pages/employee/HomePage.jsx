@@ -103,6 +103,46 @@ export default function HomePage() {
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
 
+  const [deferredPrompt, setDeferredPrompt] = useState(window.deferredPrompt || null)
+  const [isAppInstalled, setIsAppInstalled] = useState(false)
+
+  useEffect(() => {
+    const handleBeforePrompt = (e) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      window.deferredPrompt = e
+    }
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null)
+      window.deferredPrompt = null
+      setIsAppInstalled(true)
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforePrompt)
+    window.addEventListener("appinstalled", handleAppInstalled)
+
+    // Check standalone mode
+    if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+      setIsAppInstalled(true)
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforePrompt)
+      window.removeEventListener("appinstalled", handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if (outcome === "accepted") {
+      setDeferredPrompt(null)
+      window.deferredPrompt = null
+    }
+  }
+
   const fetchToday = () => {
     setLoading(true)
     getTodayAttendance()
@@ -423,6 +463,31 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* PWA Install Card */}
+        {deferredPrompt && !isAppInstalled && (
+          <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-500/5 to-teal-500/10 p-5 shadow-sm space-y-3 relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/10">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-gray-950">Install GLR Mobile App</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Add this app to your Home Screen for quick, one-tap face check-in and live attendance updates.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleInstallClick}
+              className="w-full rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white transition hover:bg-emerald-700 shadow-sm shadow-emerald-600/10 hover:scale-[1.01] active:scale-[0.99]"
+            >
+              INSTALL APP
+            </button>
+          </div>
+        )}
 
         {/* Action buttons */}
         {!loading && (

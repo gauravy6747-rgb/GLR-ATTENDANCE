@@ -12,10 +12,12 @@ function PwaInstallPrompt() {
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault()
       setInstallPrompt(event)
+      window.deferredPrompt = event
     }
 
     const handleAppInstalled = () => {
       setInstallPrompt(null)
+      window.deferredPrompt = null
       setDismissed(true)
       localStorage.setItem("pwa_install_dismissed", "true")
     }
