@@ -486,7 +486,7 @@ def override_attendance(
     attendance.is_manual_override = True
     attendance.override_by = current_user.id
     attendance.override_at = now_ist()
-    attendance.override_note = data.admin_note
+    attendance.override_note = data.admin_note or "Manual override by administrator"
 
     db.commit()
     db.refresh(attendance)

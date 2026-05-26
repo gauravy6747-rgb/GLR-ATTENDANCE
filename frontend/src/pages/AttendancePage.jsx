@@ -127,7 +127,6 @@ function AttendancePage() {
 
   const handleOverrideSubmit = async (e) => {
     e.preventDefault()
-    if (!overrideData.admin_note) return alert("Please provide a reason for the override")
     
     setSubmitting(true)
     try {
@@ -223,9 +222,6 @@ function AttendancePage() {
                     </td>
                     <td className="p-4 text-center">
                       <StatusBadge value={record.day_status} />
-                      {record.is_manual_override && (
-                        <div className="mt-1 text-[10px] font-bold text-amber-600 uppercase">Overridden</div>
-                      )}
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex justify-center items-center gap-2">
@@ -340,9 +336,8 @@ function AttendancePage() {
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reason (Mandatory)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reason (Optional)</label>
                 <textarea
-                  required
                   placeholder="e.g. Forgot to check out, system error..."
                   value={overrideData.admin_note}
                   onChange={(e) => setOverrideData({ ...overrideData, admin_note: e.target.value })}
