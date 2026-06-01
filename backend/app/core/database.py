@@ -12,6 +12,7 @@ if not DATABASE_URL:
 
 engine = create_engine(
     DATABASE_URL,
+    connect_args={"connect_timeout": 10},
     pool_pre_ping=True,
     pool_recycle=600,
     pool_size=30,
