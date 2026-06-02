@@ -186,6 +186,26 @@ def update_employee_salary(
     q_year = payload.year or ist_now.year
     q_month = payload.month or ist_now.month
 
+    # To prevent affecting past months, if we are changing the salary and the user
+    # does not have any prior MonthlySalary records, we should lock in their
+    # previous salary for the month before this change takes effect.
+    if emp.base_salary and emp.base_salary != payload.base_salary:
+        has_prior = db.query(MonthlySalary).filter(MonthlySalary.user_id == emp.id).first()
+        if not has_prior:
+            prev_year = q_year
+            prev_month = q_month - 1
+            if prev_month == 0:
+                prev_month = 12
+                prev_year -= 1
+            
+            baseline = MonthlySalary(
+                user_id=emp.id,
+                year=prev_year,
+                month=prev_month,
+                base_salary=emp.base_salary
+            )
+            db.add(baseline)
+
     # Check if a monthly salary record already exists
     record = db.query(MonthlySalary).filter(
         MonthlySalary.user_id == emp.id,
