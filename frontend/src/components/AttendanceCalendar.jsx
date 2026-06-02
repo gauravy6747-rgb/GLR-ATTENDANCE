@@ -9,9 +9,7 @@ const statusColors = {
   comp_off_leave: "bg-indigo-500 text-white",
 }
 
-export default function AttendanceCalendar({ records, holidays }) {
-  const [currentDate, setCurrentDate] = useState(new Date())
-  
+export default function AttendanceCalendar({ records, holidays, currentDate }) {
   const daysInMonth = useMemo(() => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -37,9 +35,6 @@ export default function AttendanceCalendar({ records, holidays }) {
     
     return data
   }, [records, holidays])
-
-  const nextMonth = () => setCurrentDate(new Date(daysInMonth.year, daysInMonth.month + 1, 1))
-  const prevMonth = () => setCurrentDate(new Date(daysInMonth.year, daysInMonth.month - 1, 1))
 
   const days = []
   // Empty slots for first week
@@ -98,24 +93,8 @@ export default function AttendanceCalendar({ records, holidays }) {
     )
   }
 
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-bold text-gray-900">
-          {monthNames[daysInMonth.month]} {daysInMonth.year}
-        </h3>
-        <div className="flex gap-2">
-          <button onClick={prevMonth} className="rounded-lg p-2 hover:bg-gray-100">
-            <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <button onClick={nextMonth} className="rounded-lg p-2 hover:bg-gray-100">
-            <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-          </button>
-        </div>
-      </div>
-
       <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d}>{d}</div>)}
       </div>

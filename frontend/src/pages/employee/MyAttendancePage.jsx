@@ -66,10 +66,27 @@ export default function MyAttendancePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Summary stats
-  const fullDays  = records.filter((r) => r.day_status === "full_day").length
-  const halfDays  = records.filter((r) => r.day_status === "half_day").length
-  const totalHrs  = records.reduce((sum, r) => sum + (Number(r.total_hours) || 0), 0)
+  const [currentDate, setCurrentDate] = useState(new Date())
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ]
+
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+
+  // Filter records for the currently selected month and year
+  const monthlyRecords = records.filter((r) => {
+    if (!r.date) return false
+    const [y, m] = r.date.split("-").map(Number)
+    return y === currentDate.getFullYear() && m === (currentDate.getMonth() + 1)
+  })
+
+  // Summary stats (filtered by month)
+  const fullDays  = monthlyRecords.filter((r) => r.day_status === "full_day").length
+  const halfDays  = monthlyRecords.filter((r) => r.day_status === "half_day").length
+  const totalHrs  = monthlyRecords.reduce((sum, r) => sum + (Number(r.total_hours) || 0), 0)
 
   return (
     <EmployeeLayout>
@@ -104,6 +121,23 @@ export default function MyAttendancePage() {
           </div>
         </div>
 
+        {/* Unified Month Selector Header */}
+        {!loading && !error && !["stats", "payroll"].includes(view) && (
+          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h3 className="text-base font-bold text-gray-900">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h3>
+            <div className="flex gap-2">
+              <button onClick={prevMonth} className="rounded-lg p-2 hover:bg-gray-100">
+                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button onClick={nextMonth} className="rounded-lg p-2 hover:bg-gray-100">
+                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Summary strip */}
         {!loading && !error && !["stats", "payroll"].includes(view) && records.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
@@ -127,16 +161,16 @@ export default function MyAttendancePage() {
 
         {/* Calendar View */}
         {!loading && !error && view === "calendar" && (
-          <AttendanceCalendar records={records} holidays={holidays} />
+          <AttendanceCalendar records={records} holidays={holidays} currentDate={currentDate} />
         )}
 
         {/* Records list View */}
         {!loading && !error && view === "list" && (
           <div className="space-y-3">
-            {records.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-10">No attendance records yet.</p>
+            {monthlyRecords.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-10">No attendance records for this month.</p>
             )}
-            {records.map((record, i) => (
+            {monthlyRecords.map((record, i) => (
               <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-emerald-200">
                 <div className="flex items-start justify-between">
                   <div>
