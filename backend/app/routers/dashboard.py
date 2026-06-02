@@ -58,6 +58,58 @@ def admin_dashboard_stats(
 import calendar
 from app.models.holiday import Holiday
 from app.models.working_days import WorkingDaysConfig
+from app.utils.timezone import now_ist
+
+def calculate_monthly_paid_days(db: Session, user_id: str, year: int, month: int, days_map: list) -> float:
+    from app.models.attendance import AttendanceLog
+    from app.models.holiday import Holiday
+
+    num_days = calendar.monthrange(year, month)[1]
+
+    # Get holidays in this month
+    month_holidays = db.query(Holiday).filter(
+        Holiday.date >= date(year, month, 1),
+        Holiday.date <= date(year, month, num_days)
+    ).all()
+    holiday_dates = {h.date for h in month_holidays}
+
+    current_date_ist = now_ist().date()
+
+    # Fetch logs for this user in this month
+    logs = db.query(AttendanceLog).filter(
+        AttendanceLog.user_id == user_id,
+        AttendanceLog.date >= date(year, month, 1),
+        AttendanceLog.date <= date(year, month, num_days)
+    ).all()
+
+    log_by_date = {log.date: log for log in logs}
+
+    total_deductions = 0.0
+
+    for day_num in range(1, num_days + 1):
+        d = date(year, month, day_num)
+        is_sun = d.weekday() == 6
+        is_hol = d in holiday_dates
+        is_work_configured = days_map[d.weekday()]
+
+        # Is it an expected working day?
+        is_expected_working_day = is_work_configured and not is_sun and not is_hol
+
+        log = log_by_date.get(d)
+        if log:
+            if log.day_status == "half_day":
+                if is_expected_working_day:
+                    total_deductions += 0.5
+            elif log.day_status == "absent":
+                if is_expected_working_day:
+                    total_deductions += 1.0
+        else:
+            # No log on an expected working day is considered absent (only for past or current days)
+            if is_expected_working_day and d <= current_date_ist:
+                total_deductions += 1.0
+
+    # Fixed 30 days billing: paid days is 30 minus deductions, capped at 0
+    return max(0.0, 30.0 - total_deductions)
 
 @router.get("/employee-stats")
 def get_employee_stats(
@@ -103,22 +155,14 @@ def get_employee_stats(
     ).all()
 
     yearly_hours = sum(log.total_hours or 0.0 for log in yearly_logs)
-    yearly_worked_days = len([log for log in yearly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
-
-    yearly_holidays = db.query(Holiday).filter(
-        Holiday.date >= date(q_year, 1, 1),
-        Holiday.date <= date(q_year, 12, 31)
-    ).all()
-    yearly_holiday_dates = {h.date for h in yearly_holidays}
-
-    import datetime
-    start_date = datetime.date(q_year, 1, 1)
-    num_days_year = 366 if calendar.isleap(q_year) else 365
-    all_dates = [start_date + datetime.timedelta(days=i) for i in range(num_days_year)]
-    total_yearly_working_days = sum(
-        1 for d in all_dates
-        if days_map[d.weekday()] and d.weekday() != 6 and d not in yearly_holiday_dates
+    
+    # Calculate yearly worked days based on 30-day billing logic across all 12 months
+    yearly_worked_days = sum(
+        calculate_monthly_paid_days(db, target_user_id, q_year, m, days_map)
+        for m in range(1, 13)
     )
+    yearly_worked_days = round(yearly_worked_days, 1)
+    total_yearly_working_days = 360  # 12 months * 30 days
 
     # 3. Monthly calculations
     num_days = calendar.monthrange(q_year, q_month)[1]
@@ -129,20 +173,10 @@ def get_employee_stats(
     ).all()
 
     monthly_hours = sum(log.total_hours or 0.0 for log in monthly_logs)
-    monthly_worked_days = len([log for log in monthly_logs if log.day_status in ["present", "full_day", "half_day", "holiday_work"]])
     
-    month_holidays = db.query(Holiday).filter(
-        Holiday.date >= date(q_year, q_month, 1),
-        Holiday.date <= date(q_year, q_month, num_days)
-    ).all()
-    holiday_dates = {h.date for h in month_holidays}
-
-    num_days = calendar.monthrange(q_year, q_month)[1]
-    month_dates = [date(q_year, q_month, day_num) for day_num in range(1, num_days + 1)]
-    total_working_days = sum(
-        1 for d in month_dates
-        if days_map[d.weekday()] and d.weekday() != 6 and d not in holiday_dates
-    )
+    # Calculate monthly worked days based on 30-day fixed billing logic
+    monthly_worked_days = calculate_monthly_paid_days(db, target_user_id, q_year, q_month, days_map)
+    total_working_days = 30  # fixed 30 days
 
     # Breakdown of statuses in month
     breakdown = {
