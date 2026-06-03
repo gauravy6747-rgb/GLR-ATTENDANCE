@@ -91,15 +91,18 @@ def forgot_password(
 ):
     user = db.query(User).filter(User.email == payload.email).first()
     
-    # For security reasons against email enumeration, we return success even if user not found,
-    # but we only trigger email sending if the user exists.
-    if user:
-        token = create_reset_token(str(user.id))
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
-        reset_link = f"{frontend_url}/reset-password?token={token}"
-        send_reset_password_email(user.email, reset_link)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="This email address is not registered in our system."
+        )
         
-    return {"message": "If the email is registered in our system, you will receive a password reset link shortly."}
+    token = create_reset_token(str(user.id))
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    reset_link = f"{frontend_url}/reset-password?token={token}"
+    send_reset_password_email(user.email, reset_link)
+        
+    return {"message": "A password reset link has been sent to your email address."}
 
 
 @router.post("/reset-password")
