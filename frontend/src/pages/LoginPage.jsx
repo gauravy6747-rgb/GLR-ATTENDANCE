@@ -9,21 +9,23 @@ function LoginPage() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
+ 
   const handleLogin = async (event) => {
     event.preventDefault()
     setLoading(true)
     setError("")
-
+ 
     try {
       const { data } = await api.post("/auth/login", { email, password })
-
+ 
       // JWT is stored in httpOnly cookie by the server
       // We only store display values in localStorage
       login(data)
-
+ 
       // Redirect based on role
       if (data.role === "employee") {
         navigate(data.face_enrolled ? "/home" : "/enroll")
@@ -37,7 +39,7 @@ function LoginPage() {
       setLoading(false)
     }
   }
-
+ 
   return (
     <div className="grid min-h-screen place-items-center bg-[#f6f7f9] px-4 py-10">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
@@ -52,7 +54,7 @@ function LoginPage() {
             Access your GLR Attendance workspace.
           </p>
         </div>
-
+ 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700">
@@ -67,27 +69,54 @@ function LoginPage() {
               required
             />
           </div>
-
+ 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              required
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-semibold text-gray-700">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowResetModal(true)}
+                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition"
+              >
+                Forgot Password?
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 pl-4 pr-12 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500 hover:text-gray-700 transition"
+              >
+                {showPassword ? (
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
-
+ 
           {error && (
             <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
             </p>
           )}
-
+ 
           <button
             type="submit"
             disabled={loading}
@@ -97,6 +126,33 @@ function LoginPage() {
           </button>
         </form>
       </div>
+
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-xs rounded-2xl bg-white p-6 shadow-xl space-y-4 border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0-6h.01M5.071 19.243a10 10 0 1114.142 0M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-11.314l.707.707m11.314 11.314l.707-.707" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900">Reset Password</h3>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              For security reasons, password resets must be authorized by an administrator. Please contact the system admin at:
+            </p>
+            <div className="rounded-xl bg-gray-50 px-4 py-3 border border-gray-100 text-center">
+              <span className="text-xs font-black text-gray-900 font-mono">admin@glrattendance.com</span>
+            </div>
+            <button
+              onClick={() => setShowResetModal(false)}
+              className="w-full rounded-xl bg-gray-950 py-2.5 text-xs font-bold text-white transition hover:bg-gray-800"
+            >
+              Okay, got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
