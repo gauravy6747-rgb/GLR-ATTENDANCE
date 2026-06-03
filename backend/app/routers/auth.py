@@ -100,7 +100,13 @@ def forgot_password(
     token = create_reset_token(str(user.id))
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
     reset_link = f"{frontend_url}/reset-password?token={token}"
-    send_reset_password_email(user.email, reset_link)
+    
+    success = send_reset_password_email(user.email, reset_link)
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send the email. Please check your SMTP configuration, app password, or try again later."
+        )
         
     return {"message": "A password reset link has been sent to your email address."}
 
