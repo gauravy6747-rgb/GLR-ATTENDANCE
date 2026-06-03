@@ -7,10 +7,20 @@ from app.core.security import (
     create_access_token,
     get_current_user,
     set_auth_cookie,
-    clear_auth_cookie
+    clear_auth_cookie,
+    create_reset_token,
+    verify_reset_token,
+    hash_password
 )
 from app.models.user import User
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    TokenResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest
+)
+from app.utils.email import send_reset_password_email
+import os
 
 router = APIRouter(
     prefix="/auth",
@@ -72,3 +82,40 @@ def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "face_enrolled": current_user.face_enrolled
     }
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.email == payload.email).first()
+    
+    # For security reasons against email enumeration, we return success even if user not found,
+    # but we only trigger email sending if the user exists.
+    if user:
+        token = create_reset_token(str(user.id))
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        reset_link = f"{frontend_url}/reset-password?token={token}"
+        send_reset_password_email(user.email, reset_link)
+        
+    return {"message": "If the email is registered in our system, you will receive a password reset link shortly."}
+
+
+@router.post("/reset-password")
+def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    user_id = verify_reset_token(payload.token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    
+    return {"message": "Password reset successful. You can now log in with your new password."}

@@ -13,6 +13,11 @@ function LoginPage() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const [resetEmail, setResetEmail] = useState("")
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetMessage, setResetMessage] = useState("")
+  const [resetError, setResetError] = useState("")
  
   const handleLogin = async (event) => {
     event.preventDefault()
@@ -37,6 +42,24 @@ function LoginPage() {
       setError(getApiErrorMessage(err, "Login failed"))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async (event) => {
+    event.preventDefault()
+    setResetLoading(true)
+    setResetError("")
+    setResetMessage("")
+
+    try {
+      const { data } = await api.post("/auth/forgot-password", { email: resetEmail })
+      setResetMessage(data.message || "Reset link sent successfully! Check your email.")
+      setResetEmail("")
+    } catch (err) {
+      console.error(err)
+      setResetError(getApiErrorMessage(err, "Failed to send reset link"))
+    } finally {
+      setResetLoading(false)
     }
   }
  
@@ -129,27 +152,79 @@ function LoginPage() {
 
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-xs rounded-2xl bg-white p-6 shadow-xl space-y-4 border border-gray-100 animate-in fade-in zoom-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl space-y-5 border border-gray-100 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0-6h.01M5.071 19.243a10 10 0 1114.142 0M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-11.314l.707.707m11.314 11.314l.707-.707" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-5-4v12m0 0l-4-4m4 4l4-4" />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-gray-900">Reset Password</h3>
+              <h3 className="text-lg font-bold text-gray-900">Forgot Password</h3>
             </div>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              For security reasons, password resets must be authorized by an administrator. Please contact the system admin at:
-            </p>
-            <div className="rounded-xl bg-gray-50 px-4 py-3 border border-gray-100 text-center">
-              <span className="text-xs font-black text-gray-900 font-mono">admin@glrattendance.com</span>
-            </div>
-            <button
-              onClick={() => setShowResetModal(false)}
-              className="w-full rounded-xl bg-gray-950 py-2.5 text-xs font-bold text-white transition hover:bg-gray-800"
-            >
-              Okay, got it
-            </button>
+            
+            {resetMessage ? (
+              <div className="space-y-4">
+                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                  {resetMessage}
+                </p>
+                <button
+                  onClick={() => {
+                    setShowResetModal(false)
+                    setResetMessage("")
+                  }}
+                  className="w-full rounded-lg bg-gray-950 py-3 text-sm font-bold text-white transition hover:bg-gray-800"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Enter your email address and we'll send you a secure link to reset your password.
+                </p>
+                
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    required
+                  />
+                </div>
+
+                {resetError && (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    {resetError}
+                  </p>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetModal(false)
+                      setResetError("")
+                      setResetEmail("")
+                    }}
+                    className="flex-1 rounded-lg border border-gray-300 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="flex-1 rounded-lg bg-emerald-600 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    {resetLoading ? "Sending..." : "Send Link"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

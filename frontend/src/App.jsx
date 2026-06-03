@@ -5,6 +5,7 @@ import PwaInstallPrompt from "./components/PwaInstallPrompt"
 
 // Admin pages
 import LoginPage from "./pages/LoginPage"
+import ResetPasswordPage from "./pages/ResetPasswordPage"
 import DashboardPage from "./pages/DashboardPage"
 import EmployeesPage from "./pages/EmployeesPage"
 import AttendancePage from "./pages/AttendancePage"
@@ -76,6 +77,7 @@ function App() {
       <Routes>
         {/* Public — smart redirect if already logged in */}
         <Route path="/" element={<RootRedirect />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Face enrollment — must complete before accessing employee portal */}
         <Route
