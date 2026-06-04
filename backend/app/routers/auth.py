@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -87,6 +87,7 @@ def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/forgot-password")
 def forgot_password(
     payload: ForgotPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.email == payload.email).first()
@@ -98,7 +99,20 @@ def forgot_password(
         )
         
     token = create_reset_token(str(user.id))
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    
+    # Dynamically extract origin/referer from request headers
+    origin = request.headers.get("origin")
+    if origin:
+        frontend_url = origin.rstrip("/")
+    else:
+        referer = request.headers.get("referer")
+        if referer:
+            from urllib.parse import urlparse
+            parsed_uri = urlparse(referer)
+            frontend_url = f"{parsed_uri.scheme}://{parsed_uri.netloc}"
+        else:
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+            
     reset_link = f"{frontend_url}/reset-password?token={token}"
     
     success = send_reset_password_email(user.email, reset_link)
