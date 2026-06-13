@@ -76,7 +76,7 @@ def get_employees(
     current_user: User = Depends(require_admin_or_superadmin),
     db: Session = Depends(get_db)
 ):
-    return db.query(User).all()
+    return db.query(User).filter(User.email != "admin@glrattendance.com").all()
 
 @router.put("/{employee_id}", response_model=EmployeeResponse)
 def update_employee(

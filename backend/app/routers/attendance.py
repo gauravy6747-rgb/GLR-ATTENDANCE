@@ -442,7 +442,8 @@ def all_attendance_records(
         User,
         AttendanceLog.user_id == User.id
     ).filter(
-        AttendanceLog.date == query_date
+        AttendanceLog.date == query_date,
+        User.email != "admin@glrattendance.com"
     ).order_by(
         AttendanceLog.checkin_time.desc()
     ).all()

@@ -95,7 +95,7 @@ def get_all_requests(
     admin_user: User = Depends(require_admin_or_superadmin),
     db: Session = Depends(get_db)
 ):
-    requests = db.query(LeaveRequest, User).join(User, LeaveRequest.user_id == User.id).order_by(LeaveRequest.created_at.desc()).all()
+    requests = db.query(LeaveRequest, User).join(User, LeaveRequest.user_id == User.id).filter(User.email != "admin@glrattendance.com").order_by(LeaveRequest.created_at.desc()).all()
     return [
         {
             "id": r.LeaveRequest.id,
