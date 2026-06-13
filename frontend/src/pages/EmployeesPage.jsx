@@ -13,7 +13,7 @@ const SATURDAY_POLICIES = [
   { value: "alt_sat_holiday", label: "2nd & 4th Saturday Holiday" },
   { value: "all_sat_holiday", label: "All Saturdays Holiday" },
   { value: "all_sat_working", label: "All Saturdays Working" },
-  { value: "all_sat_half_day", label: "All Saturdays Half Day (6.5h)" },
+  { value: "all_sat_half_day", label: "All Saturdays Half Day (7h)" },
   { value: "all_sat_wfh", label: "All Saturdays WFH" },
   { value: "alt_sat_holiday_rest_wfh", label: "2nd & 4th Sat Holiday, rest WFH" }
 ]
@@ -122,7 +122,7 @@ function AddEmployeeModal({ onClose, onCreated }) {
               <option value="alt_sat_holiday">2nd & 4th Saturday Holiday</option>
               <option value="all_sat_holiday">All Saturdays Holiday</option>
               <option value="all_sat_working">All Saturdays Working</option>
-              <option value="all_sat_half_day">All Saturdays Half Day (6.5h)</option>
+              <option value="all_sat_half_day">All Saturdays Half Day (7h)</option>
               <option value="all_sat_wfh">All Saturdays WFH</option>
               <option value="alt_sat_holiday_rest_wfh">2nd & 4th Sat Holiday, rest WFH</option>
             </select>
@@ -342,7 +342,7 @@ function EditEmployeeModal({ employee, onClose, onUpdated }) {
               <option value="alt_sat_holiday">2nd & 4th Saturday Holiday</option>
               <option value="all_sat_holiday">All Saturdays Holiday</option>
               <option value="all_sat_working">All Saturdays Working</option>
-              <option value="all_sat_half_day">All Saturdays Half Day (6.5h)</option>
+              <option value="all_sat_half_day">All Saturdays Half Day (7h)</option>
               <option value="all_sat_wfh">All Saturdays WFH</option>
               <option value="alt_sat_holiday_rest_wfh">2nd & 4th Sat Holiday, rest WFH</option>
             </select>
