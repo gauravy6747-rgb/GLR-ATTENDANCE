@@ -186,7 +186,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                   </div>
                   <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
                     <p className="text-2xl font-black text-emerald-600">
-                      {formatHours(stats.yearly_stats.worked_days > 0 ? stats.yearly_stats.total_hours / stats.yearly_stats.worked_days : 0)}
+                      {formatHours(stats.yearly_stats.avg_hours ?? 0)}
                     </p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Avg Hours/Day</p>
                   </div>
@@ -213,7 +213,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
                   </div>
                   <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
                     <p className="text-2xl font-black text-emerald-600">
-                      {formatHours(stats.monthly_stats.worked_days > 0 ? stats.monthly_stats.total_hours / stats.monthly_stats.worked_days : 0)}
+                      {formatHours(stats.monthly_stats.avg_hours ?? 0)}
                     </p>
                     <p className="text-[10px] font-bold uppercase text-gray-400 mt-1">Avg Hours/Day</p>
                   </div>

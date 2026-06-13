@@ -184,6 +184,17 @@ def get_employee_stats(
 
     yearly_hours = sum(log.total_hours or 0.0 for log in yearly_logs)
     
+    # Calculate average hours per day (Option 1: scale Saturdays for half-day policy)
+    yearly_active_logs = [log for log in yearly_logs if log.total_hours and log.total_hours > 0.0]
+    yearly_active_days_count = len(yearly_active_logs)
+    yearly_scaled_hours = 0.0
+    for log in yearly_logs:
+        log_hours = log.total_hours or 0.0
+        if log.date.weekday() == 5 and user.saturday_policy == "all_sat_half_day":
+            log_hours = log_hours * (9.0 / 6.5)
+        yearly_scaled_hours += log_hours
+    yearly_avg_hours = (yearly_scaled_hours / yearly_active_days_count) if yearly_active_days_count > 0 else 0.0
+
     # Calculate yearly worked days based on 30-day billing logic across all 12 months
     yearly_worked_days = sum(
         calculate_dashboard_monthly_worked_days(db, target_user_id, q_year, m, days_map)
@@ -202,6 +213,17 @@ def get_employee_stats(
 
     monthly_hours = sum(log.total_hours or 0.0 for log in monthly_logs)
     
+    # Calculate average hours per day (Option 1: scale Saturdays for half-day policy)
+    monthly_active_logs = [log for log in monthly_logs if log.total_hours and log.total_hours > 0.0]
+    monthly_active_days_count = len(monthly_active_logs)
+    monthly_scaled_hours = 0.0
+    for log in monthly_logs:
+        log_hours = log.total_hours or 0.0
+        if log.date.weekday() == 5 and user.saturday_policy == "all_sat_half_day":
+            log_hours = log_hours * (9.0 / 6.5)
+        monthly_scaled_hours += log_hours
+    monthly_avg_hours = (monthly_scaled_hours / monthly_active_days_count) if monthly_active_days_count > 0 else 0.0
+
     # Calculate monthly worked days based on 30-day fixed billing logic
     monthly_worked_days = calculate_dashboard_monthly_worked_days(db, target_user_id, q_year, q_month, days_map)
     total_working_days = 30  # fixed 30 days
@@ -278,13 +300,15 @@ def get_employee_stats(
         "yearly_stats": {
             "total_hours": round(yearly_hours, 2),
             "worked_days": yearly_worked_days,
-            "total_working_days": total_yearly_working_days
+            "total_working_days": total_yearly_working_days,
+            "avg_hours": round(yearly_avg_hours, 2)
         },
         "monthly_stats": {
             "total_hours": round(monthly_hours, 2),
             "worked_days": monthly_worked_days,
             "total_working_days": total_working_days,
-            "breakdown": breakdown
+            "breakdown": breakdown,
+            "avg_hours": round(monthly_avg_hours, 2)
         },
         "single_day_detail": single_day_log
     }

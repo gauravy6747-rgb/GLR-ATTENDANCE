@@ -59,11 +59,13 @@ def login(
     set_auth_cookie(response, token)
 
     return {
+        "id": str(user.id),
         "token_type": "bearer",
         "role": user.role,
         "name": user.name,
         "employee_id": user.employee_id,
-        "face_enrolled": user.face_enrolled
+        "face_enrolled": user.face_enrolled,
+        "saturday_policy": user.saturday_policy
     }
 
 
@@ -76,11 +78,13 @@ def logout(response: Response):
 @router.get("/me")
 def get_me(current_user: User = Depends(get_current_user)):
     return {
+        "id": str(current_user.id),
         "employee_id": current_user.employee_id,
         "name": current_user.name,
         "email": current_user.email,
         "role": current_user.role,
-        "face_enrolled": current_user.face_enrolled
+        "face_enrolled": current_user.face_enrolled,
+        "saturday_policy": current_user.saturday_policy
     }
 
 

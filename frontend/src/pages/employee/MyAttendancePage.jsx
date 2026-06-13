@@ -5,6 +5,7 @@ import api, { getApiErrorMessage } from "../../api/axios"
 import AttendanceCalendar from "../../components/AttendanceCalendar"
 import EmployeeStatsDashboard from "../../components/EmployeeStatsDashboard"
 import EmployeePayrollSlip from "../../components/EmployeePayrollSlip"
+import { useAuth } from "../../context/AuthContext"
 
 function formatDate(value) {
   if (!value) return "-"
@@ -46,6 +47,9 @@ function DayBadge({ status }) {
 }
 
 export default function MyAttendancePage() {
+  const { user } = useAuth()
+  const saturdayPolicy = user?.saturday_policy || "alt_sat_holiday"
+
   const [records, setRecords] = useState([])
   const [holidays, setHolidays] = useState([])
   const [loading, setLoading] = useState(true)
@@ -76,6 +80,14 @@ export default function MyAttendancePage() {
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
 
+  // Helper to determine if a date string is Saturday
+  const isSaturday = (dateStr) => {
+    if (!dateStr) return false
+    const [y, m, d] = dateStr.split("-").map(Number)
+    const dateObj = new Date(y, m - 1, d)
+    return dateObj.getDay() === 6
+  }
+
   // Filter records for the currently selected month and year
   const monthlyRecords = records.filter((r) => {
     if (!r.date) return false
@@ -86,7 +98,15 @@ export default function MyAttendancePage() {
   // Summary stats (filtered by month)
   const fullDays  = monthlyRecords.filter((r) => r.day_status === "full_day").length
   const halfDays  = monthlyRecords.filter((r) => r.day_status === "half_day").length
-  const totalHrs  = monthlyRecords.reduce((sum, r) => sum + (Number(r.total_hours) || 0), 0)
+  
+  // Scale Saturday hours under all_sat_half_day policy by 9.0 / 6.5 (Option 1)
+  const totalHrs  = monthlyRecords.reduce((sum, r) => {
+    let hours = Number(r.total_hours) || 0
+    if (saturdayPolicy === "all_sat_half_day" && r.date && isSaturday(r.date)) {
+      hours = hours * (9.0 / 6.5)
+    }
+    return sum + hours
+  }, 0)
 
   return (
     <EmployeeLayout>
