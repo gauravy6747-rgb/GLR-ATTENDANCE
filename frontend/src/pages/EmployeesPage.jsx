@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import AdminLayout from "../layouts/AdminLayout"
-import { getEmployees, createEmployee, deleteEmployee } from "../services/employeeService"
+import { getEmployees, createEmployee, deleteEmployee, updateEmployee } from "../services/employeeService"
 import { getApiErrorMessage } from "../api/axios"
 import EmployeeStatsDashboard from "../components/EmployeeStatsDashboard"
 
@@ -9,13 +9,28 @@ function formatRole(role) {
   return role.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())
 }
 
+const SATURDAY_POLICIES = [
+  { value: "alt_sat_holiday", label: "2nd & 4th Saturday Holiday" },
+  { value: "all_sat_holiday", label: "All Saturdays Holiday" },
+  { value: "all_sat_working", label: "All Saturdays Working" },
+  { value: "all_sat_half_day", label: "All Saturdays Half Day (6.5h)" },
+  { value: "all_sat_wfh", label: "All Saturdays WFH" },
+  { value: "alt_sat_holiday_rest_wfh", label: "2nd & 4th Sat Holiday, rest WFH" }
+]
+
+function formatSaturdayPolicy(policy) {
+  const matched = SATURDAY_POLICIES.find(p => p.value === policy)
+  return matched ? matched.label : policy || "2nd & 4th Saturday Holiday"
+}
+
 const emptyForm = {
   employee_id: "",
   name: "",
   email: "",
   password: "",
   phone: "",
-  role: "employee"
+  role: "employee",
+  saturday_policy: "alt_sat_holiday"
 }
 
 function AddEmployeeModal({ onClose, onCreated }) {
@@ -98,6 +113,22 @@ function AddEmployeeModal({ onClose, onCreated }) {
           </div>
 
           <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600">Saturday Policy</label>
+            <select
+              value={form.saturday_policy}
+              onChange={set("saturday_policy")}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value="alt_sat_holiday">2nd & 4th Saturday Holiday</option>
+              <option value="all_sat_holiday">All Saturdays Holiday</option>
+              <option value="all_sat_working">All Saturdays Working</option>
+              <option value="all_sat_half_day">All Saturdays Half Day (6.5h)</option>
+              <option value="all_sat_wfh">All Saturdays WFH</option>
+              <option value="alt_sat_holiday_rest_wfh">2nd & 4th Sat Holiday, rest WFH</option>
+            </select>
+          </div>
+
+          <div>
             <label className="mb-1.5 block text-xs font-semibold text-gray-600">Full Name</label>
             <input
               value={form.name}
@@ -173,11 +204,184 @@ function AddEmployeeModal({ onClose, onCreated }) {
   )
 }
 
+function EditEmployeeModal({ employee, onClose, onUpdated }) {
+  const [form, setForm] = useState({
+    name: employee.name || "",
+    email: employee.email || "",
+    phone: employee.phone || "",
+    role: employee.role || "employee",
+    saturday_policy: employee.saturday_policy || "alt_sat_holiday",
+    base_salary: employee.base_salary || 0
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === "Escape" && !loading) {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [loading, onClose])
+
+  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+    try {
+      const updated = await updateEmployee(employee.id, {
+        ...form,
+        base_salary: parseFloat(form.base_salary) || 0
+      })
+      onUpdated(updated)
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to update employee"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !loading) {
+          onClose()
+        }
+      }}
+    >
+      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+        <div className="mb-6 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-950">Edit Employee</h3>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-600">Employee ID</label>
+              <input
+                value={employee.employee_id}
+                disabled
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-500 outline-none cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-600">Role</label>
+              <select
+                value={form.role}
+                onChange={set("role")}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              >
+                <option value="employee">Employee</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600">Full Name</label>
+            <input
+              value={form.name}
+              onChange={set("name")}
+              required
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={set("email")}
+              required
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-600">Phone</label>
+              <input
+                value={form.phone}
+                onChange={set("phone")}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-600">Base Salary (Monthly)</label>
+              <input
+                type="number"
+                value={form.base_salary}
+                onChange={set("base_salary")}
+                min="0"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600">Saturday Policy</label>
+            <select
+              value={form.saturday_policy}
+              onChange={set("saturday_policy")}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value="alt_sat_holiday">2nd & 4th Saturday Holiday</option>
+              <option value="all_sat_holiday">All Saturdays Holiday</option>
+              <option value="all_sat_working">All Saturdays Working</option>
+              <option value="all_sat_half_day">All Saturdays Half Day (6.5h)</option>
+              <option value="all_sat_wfh">All Saturdays WFH</option>
+              <option value="alt_sat_holiday_rest_wfh">2nd & 4th Sat Holiday, rest WFH</option>
+            </select>
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium text-red-700">
+              {error}
+            </p>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:bg-emerald-300"
+            >
+              {loading ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function EmployeesPage() {
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [showModal, setShowModal] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState(null)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
 
   const fetchEmployees = () => {
@@ -213,6 +417,16 @@ function EmployeesPage() {
       {showModal && (
         <AddEmployeeModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
       )}
+      {editingEmployee && (
+        <EditEmployeeModal
+          employee={editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onUpdated={(updated) => {
+            setEmployees((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+            setEditingEmployee(null)
+          }}
+        />
+      )}
 
       <div className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -245,10 +459,11 @@ function EmployeesPage() {
                   <th className="w-36 p-4 text-left text-sm font-semibold">Employee ID</th>
                   <th className="w-48 p-4 text-left text-sm font-semibold">Name</th>
                   <th className="w-64 p-4 text-left text-sm font-semibold">Email</th>
-                  <th className="w-36 p-4 text-left text-sm font-semibold">Role</th>
-                  <th className="w-32 p-4 text-center text-sm font-semibold">Face</th>
-                  <th className="w-24 p-4 text-center text-sm font-semibold">Stats</th>
-                  <th className="w-24 p-4 text-right text-sm font-semibold">Actions</th>
+                  <th className="w-32 p-4 text-left text-sm font-semibold">Role</th>
+                  <th className="w-48 p-4 text-left text-sm font-semibold">Saturday Policy</th>
+                  <th className="w-28 p-4 text-center text-sm font-semibold">Face</th>
+                  <th className="w-20 p-4 text-center text-sm font-semibold">Stats</th>
+                  <th className="w-32 p-4 text-right text-sm font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -261,6 +476,9 @@ function EmployeesPage() {
                       <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                         {formatRole(emp.role)}
                       </span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {formatSaturdayPolicy(emp.saturday_policy)}
                     </td>
                     <td className="p-4 text-center">
                       <span className={`inline-flex min-w-16 justify-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -282,7 +500,16 @@ function EmployeesPage() {
                         </svg>
                       </button>
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right flex justify-end gap-1.5">
+                      <button
+                        onClick={() => setEditingEmployee(emp)}
+                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+                        title="Edit Employee"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
                       {emp.email !== "admin@glrattendance.com" ? (
                         <button
                           onClick={() => handleDeleteEmployee(emp.id)}
@@ -294,7 +521,7 @@ function EmployeesPage() {
                           </svg>
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400 font-semibold italic pr-2">Protected</span>
+                        <span className="text-xs text-gray-400 font-semibold italic pr-2 flex items-center">Protected</span>
                       )}
                     </td>
                   </tr>

@@ -10,7 +10,8 @@ from app.models.notification import FaceVerificationFailure, NotificationLog, Pu
 from app.models.user import User
 from app.schemas.employee import (
     EmployeeCreate,
-    EmployeeResponse
+    EmployeeResponse,
+    EmployeeUpdate
 )
 from app.core.security import hash_password, require_admin_or_superadmin
 
@@ -51,7 +52,8 @@ def create_employee(
         email=employee.email,
         password_hash=hashed_password,
         phone=employee.phone,
-        role=employee.role
+        role=employee.role,
+        saturday_policy=employee.saturday_policy or "alt_sat_holiday"
     )
 
     try:
@@ -75,6 +77,42 @@ def get_employees(
     db: Session = Depends(get_db)
 ):
     return db.query(User).all()
+
+@router.put("/{employee_id}", response_model=EmployeeResponse)
+def update_employee(
+    employee_id: str,
+    employee_data: EmployeeUpdate,
+    current_user: User = Depends(require_admin_or_superadmin),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == employee_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    if employee_data.name is not None:
+        user.name = employee_data.name
+    if employee_data.email is not None:
+        user.email = employee_data.email
+    if employee_data.phone is not None:
+        user.phone = employee_data.phone
+    if employee_data.role is not None:
+        user.role = employee_data.role
+    if employee_data.saturday_policy is not None:
+        user.saturday_policy = employee_data.saturday_policy
+    if employee_data.base_salary is not None:
+        user.base_salary = employee_data.base_salary
+
+    try:
+        db.commit()
+        db.refresh(user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Employee ID or email already exists"
+        )
+
+    return user
 
 @router.delete("/{employee_id}")
 def delete_employee(

@@ -38,6 +38,7 @@ def add_column_if_missing(table, column, col_type, default=None):
 print("\n-- users --------------------------------------------------")
 add_column_if_missing("users", "created_at", "TIMESTAMP", "NOW()")
 add_column_if_missing("users", "updated_at", "TIMESTAMP")
+add_column_if_missing("users", "saturday_policy", "VARCHAR(30)", "'alt_sat_holiday'")
 
 print("\n-- attendance_logs ----------------------------------------")
 add_column_if_missing("attendance_logs", "checkin_photo_url",    "TEXT")

@@ -92,6 +92,17 @@ export default function HomePage() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
+  // Calculate WFH Saturday status
+  const todayDate = new Date()
+  const isSaturday = todayDate.getDay() === 6 // Saturday is 6 (0 is Sunday, 6 is Saturday)
+  const dayOfMonth = todayDate.getDate()
+  const saturdayIndex = Math.floor((dayOfMonth - 1) / 7) + 1
+
+  const isWfhToday = isSaturday && (
+    user?.saturday_policy === "all_sat_wfh" ||
+    (user?.saturday_policy === "alt_sat_holiday_rest_wfh" && saturdayIndex !== 2 && saturdayIndex !== 4)
+  )
+
   const [today, setToday] = useState(null)     // today's attendance record
   const [loading, setLoading] = useState(true)
   const [action, setAction] = useState(null)   // 'checkin' | 'checkout'
@@ -223,7 +234,12 @@ export default function HomePage() {
   const startFlow = async (actionType) => {
     setAction(actionType)
     setNote("")
-    await openCamera()
+    if (isWfhToday) {
+      setCapturedPhoto(null)
+      setStep("note")
+    } else {
+      await openCamera()
+    }
   }
 
   // Auto-capture logic
@@ -262,7 +278,7 @@ export default function HomePage() {
     setStep("submitting")
     setError("")
     try {
-      const coords = await getGPS()
+      const coords = isWfhToday ? { latitude: 0.0, longitude: 0.0 } : await getGPS()
       if (action === "checkin") {
         await checkin(coords.latitude, coords.longitude, note || null, capturedPhoto)
       } else {
@@ -429,6 +445,17 @@ export default function HomePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             <p className="text-sm font-semibold text-emerald-700">{successMsg}</p>
+          </div>
+        )}
+
+        {/* WFH notification */}
+        {isWfhToday && (
+          <div className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 shadow-sm">
+            <span className="text-xl">🏡</span>
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-blue-900">WFH Mode Active</p>
+              <p className="text-xs text-blue-600 font-medium">No face or GPS verification is required for today's check-in.</p>
+            </div>
           </div>
         )}
 

@@ -26,6 +26,45 @@ router = APIRouter(
 )
 
 
+def get_saturday_index(d: date) -> int:
+    return (d.day - 1) // 7 + 1
+
+
+def is_user_expected_working_day(d: date, user_saturday_policy: str, holiday_dates: set, days_map: list) -> bool:
+    if d.weekday() == 6:  # Sunday
+        return False
+    if d in holiday_dates:  # Public holiday
+        return False
+    if d.weekday() == 5:  # Saturday
+        sat_idx = get_saturday_index(d)
+        if user_saturday_policy == "all_sat_holiday":
+            return False
+        elif user_saturday_policy == "all_sat_working":
+            return True
+        elif user_saturday_policy == "all_sat_half_day":
+            return True
+        elif user_saturday_policy == "all_sat_wfh":
+            return True
+        elif user_saturday_policy in ["alt_sat_holiday", "alt_sat_holiday_rest_wfh"]:
+            if sat_idx in [2, 4]:
+                return False
+            else:
+                return True
+        return False
+    return days_map[d.weekday()]
+
+
+def is_user_wfh_today(d: date, user_saturday_policy: str) -> bool:
+    if d.weekday() != 5:
+        return False
+    sat_idx = get_saturday_index(d)
+    if user_saturday_policy == "all_sat_wfh":
+        return True
+    if user_saturday_policy == "alt_sat_holiday_rest_wfh" and sat_idx not in [2, 4]:
+        return True
+    return False
+
+
 def verify_attendance_face(current_user: User, photo: str, action_type: str, db: Session):
     if not photo:
         raise HTTPException(
@@ -86,37 +125,40 @@ def checkin(
             detail="Face enrollment required before check-in"
         )
     
-    active_locations = db.query(Location).filter(
-        Location.is_active == True
-    ).all()
-
-    if not active_locations:
-        raise HTTPException(
-            status_code=400,
-            detail="No active office location configured"
-        )
+    today = today_ist()
+    is_wfh = is_user_wfh_today(today, current_user.saturday_policy)
 
     location_valid = False
+    if is_wfh:
+        location_valid = True
+    else:
+        active_locations = db.query(Location).filter(
+            Location.is_active == True
+        ).all()
 
-    for office in active_locations:
-        distance = calculate_distance_meters(
-            location_data.latitude,
-            location_data.longitude,
-            office.latitude,
-            office.longitude
-        )
+        if not active_locations:
+            raise HTTPException(
+                status_code=400,
+                detail="No active office location configured"
+            )
 
-        if distance <= office.radius_meters:
-            location_valid = True
-            break
+        for office in active_locations:
+            distance = calculate_distance_meters(
+                location_data.latitude,
+                location_data.longitude,
+                office.latitude,
+                office.longitude
+            )
+
+            if distance <= office.radius_meters:
+                location_valid = True
+                break
 
     if not location_valid:
         raise HTTPException(
             status_code=403,
             detail="You are outside the allowed check-in zone"
         )
-
-    today = today_ist()
 
     existing_attendance = db.query(
         AttendanceLog
@@ -131,12 +173,24 @@ def checkin(
             detail="Already checked in today"
         )
 
-    face_result = verify_attendance_face(
-        current_user=current_user,
-        photo=location_data.photo,
-        action_type="checkin",
-        db=db
-    )
+    if is_wfh:
+        photo_url = None
+        if location_data.photo:
+            try:
+                photo_url = save_attendance_face(location_data.photo, current_user.id, "checkin")
+            except FaceStorageError:
+                pass
+        face_result = {
+            "photo_url": photo_url,
+            "score": 100.0
+        }
+    else:
+        face_result = verify_attendance_face(
+            current_user=current_user,
+            photo=location_data.photo,
+            action_type="checkin",
+            db=db
+        )
 
     now = now_ist()   # IST-aware datetime
     checkin_status = "on_time"
@@ -183,27 +237,32 @@ def checkout(
             detail="Face enrollment required before checkout"
         )
     
-    active_locations = db.query(Location).filter(Location.is_active == True).all()
-
-    if not active_locations:
-        raise HTTPException(
-            status_code=400,
-            detail="No active office location configured"
-        )
+    today = today_ist()
+    is_wfh = is_user_wfh_today(today, current_user.saturday_policy)
 
     location_valid = False
+    if is_wfh:
+        location_valid = True
+    else:
+        active_locations = db.query(Location).filter(Location.is_active == True).all()
 
-    for office in active_locations:
-        distance = calculate_distance_meters(
-            location_data.latitude,
-            location_data.longitude,
-            office.latitude,
-            office.longitude
-        )
+        if not active_locations:
+            raise HTTPException(
+                status_code=400,
+                detail="No active office location configured"
+            )
 
-        if distance <= office.radius_meters:
-            location_valid = True
-            break
+        for office in active_locations:
+            distance = calculate_distance_meters(
+                location_data.latitude,
+                location_data.longitude,
+                office.latitude,
+                office.longitude
+            )
+
+            if distance <= office.radius_meters:
+                location_valid = True
+                break
 
     if not location_valid:
         raise HTTPException(
@@ -211,8 +270,6 @@ def checkout(
             detail="You are outside the allowed checkout zone"
         )
         
-    today = today_ist()
-
     attendance = db.query(AttendanceLog).filter(
         AttendanceLog.user_id == current_user.id,
         AttendanceLog.date == today
@@ -230,12 +287,24 @@ def checkout(
             detail="Already checked out today"
         )
 
-    face_result = verify_attendance_face(
-        current_user=current_user,
-        photo=location_data.photo,
-        action_type="checkout",
-        db=db
-    )
+    if is_wfh:
+        photo_url = None
+        if location_data.photo:
+            try:
+                photo_url = save_attendance_face(location_data.photo, current_user.id, "checkout")
+            except FaceStorageError:
+                pass
+        face_result = {
+            "photo_url": photo_url,
+            "score": 100.0
+        }
+    else:
+        face_result = verify_attendance_face(
+            current_user=current_user,
+            photo=location_data.photo,
+            action_type="checkout",
+            db=db
+        )
 
     now = now_ist()   # IST-aware datetime
 
@@ -258,18 +327,22 @@ def checkout(
     holiday = db.query(Holiday).filter(Holiday.date == today).first()
     
     working_days = db.query(WorkingDaysConfig).first()
-    is_working_day = True
+    days_map = [True, True, True, True, True, True, False]
     if working_days:
-        day_of_week = today.weekday()
         days_map = [
             working_days.monday, working_days.tuesday, working_days.wednesday,
             working_days.thursday, working_days.friday, working_days.saturday,
             working_days.sunday
         ]
-        is_working_day = days_map[day_of_week]
 
-    is_sunday = today.weekday() == 6
-    is_special_day = bool(holiday) or not is_working_day or is_sunday
+    # Evaluate expected working day based on user policy
+    is_work_configured = is_user_expected_working_day(
+        today,
+        current_user.saturday_policy,
+        {holiday.date} if holiday else set(),
+        days_map
+    )
+    is_special_day = not is_work_configured
 
     if is_special_day:
         attendance.day_status = "holiday_work"
@@ -279,7 +352,9 @@ def checkout(
             balance = CompOffBalance(user_id=current_user.id)
             db.add(balance)
         
-        amount_earned = 1.0 if total_hours >= 8.5 else (0.5 if total_hours >= 4.5 else 0.0)
+        # For comp-off work hours requirement
+        expected_full_hours = 6.5 if (today.weekday() == 5 and current_user.saturday_policy == "all_sat_half_day") else 8.5
+        amount_earned = 1.0 if total_hours >= expected_full_hours else (0.5 if total_hours >= 4.5 else 0.0)
         balance.days_earned = float(balance.days_earned or 0) + amount_earned
         
         txn = CompOffTransaction(
@@ -287,11 +362,13 @@ def checkout(
             type="earned",
             amount=amount_earned,
             reference_date=today,
-            notes=f"Worked {'full' if total_hours >= 8.5 else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
+            notes=f"Worked {'full' if total_hours >= expected_full_hours else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
         )
         db.add(txn)
     else:
-        if total_hours >= 8.5:
+        # Expected working day
+        expected_full_hours = 6.5 if (today.weekday() == 5 and current_user.saturday_policy == "all_sat_half_day") else 8.5
+        if total_hours >= expected_full_hours:
             attendance.day_status = "full_day"
         elif total_hours >= 4.5:
             attendance.day_status = "half_day"
@@ -299,7 +376,8 @@ def checkout(
             attendance.day_status = "absent"
 
     # Status based on shift completion
-    if total_hours < 8.5:
+    expected_full_hours = 6.5 if (today.weekday() == 5 and current_user.saturday_policy == "all_sat_half_day") else 8.5
+    if total_hours < expected_full_hours:
         attendance.checkout_status = "early_leave"
     else:
         attendance.checkout_status = "on_time_out"
@@ -455,22 +533,31 @@ def override_attendance(
                 today_date = attendance.date
                 holiday = db.query(Holiday).filter(Holiday.date == today_date).first()
                 working_days = db.query(WorkingDaysConfig).first()
-                is_working_day = True
+                days_map = [True, True, True, True, True, True, False]
                 if working_days:
-                    day_of_week = today_date.weekday()
                     days_map = [
                         working_days.monday, working_days.tuesday, working_days.wednesday,
                         working_days.thursday, working_days.friday, working_days.saturday,
                         working_days.sunday
                     ]
-                    is_working_day = days_map[day_of_week]
-                is_sunday = today_date.weekday() == 6
-                is_special_day = bool(holiday) or not is_working_day or is_sunday
+                
+                # Fetch target user's saturday policy
+                target_user = db.query(User).filter(User.id == attendance.user_id).first()
+                target_policy = target_user.saturday_policy if target_user else "alt_sat_holiday"
+
+                is_expected_work = is_user_expected_working_day(
+                    today_date,
+                    target_policy,
+                    {holiday.date} if holiday else set(),
+                    days_map
+                )
+                is_special_day = not is_expected_work
                 
                 if is_special_day:
                     attendance.day_status = "holiday_work"
                 else:
-                    if total_hours >= 8.5:
+                    expected_full_hours = 6.5 if (today_date.weekday() == 5 and target_policy == "all_sat_half_day") else 8.5
+                    if total_hours >= expected_full_hours:
                         attendance.day_status = "full_day"
                     elif total_hours >= 4.5:
                         attendance.day_status = "half_day"

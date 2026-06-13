@@ -25,6 +25,32 @@ class SalaryUpdateSchema(BaseModel):
     year: Optional[int] = None
     month: Optional[int] = None
 
+def get_saturday_index(d: date) -> int:
+    return (d.day - 1) // 7 + 1
+
+def is_user_expected_working_day(d: date, user_saturday_policy: str, holiday_dates: set, days_map: list) -> bool:
+    if d.weekday() == 6:  # Sunday
+        return False
+    if d in holiday_dates:  # Public holiday
+        return False
+    if d.weekday() == 5:  # Saturday
+        sat_idx = get_saturday_index(d)
+        if user_saturday_policy == "all_sat_holiday":
+            return False
+        elif user_saturday_policy == "all_sat_working":
+            return True
+        elif user_saturday_policy == "all_sat_half_day":
+            return True
+        elif user_saturday_policy == "all_sat_wfh":
+            return True
+        elif user_saturday_policy in ["alt_sat_holiday", "alt_sat_holiday_rest_wfh"]:
+            if sat_idx in [2, 4]:
+                return False
+            else:
+                return True
+        return False
+    return days_map[d.weekday()]
+
 def get_employee_monthly_salary(db: Session, user_id: str, year: int, month: int, default_salary: float) -> float:
     # 1. Exact match
     exact = db.query(MonthlySalary).filter(
@@ -111,36 +137,51 @@ def get_payroll_summary(
         total_deductions = 0.0
         worked_days = 0.0
         paid_leaves = 0.0
+        extra_days_worked = 0.0
+
+        user_policy = emp.saturday_policy or "alt_sat_holiday"
 
         for day_num in range(1, num_days + 1):
             d = date(q_year, q_month, day_num)
-            is_sun = d.weekday() == 6
-            is_hol = d in holiday_dates
-            is_work_configured = days_map[d.weekday()]
-
+            
             # Is it an expected working day?
-            is_expected_working_day = is_work_configured and not is_sun and not is_hol
+            is_expected_working_day = is_user_expected_working_day(
+                d,
+                user_policy,
+                holiday_dates,
+                days_map
+            )
 
             log = log_by_date.get(d)
-            if log:
-                if log.day_status in ["full_day", "holiday_work"]:
-                    worked_days += 1.0
-                elif log.day_status == "half_day":
-                    worked_days += 0.5
-                    if is_expected_working_day:
+            if is_expected_working_day:
+                if log:
+                    if log.day_status in ["full_day", "holiday_work"]:
+                        worked_days += 1.0
+                    elif log.day_status == "half_day":
+                        worked_days += 0.5
                         total_deductions += 0.5
-                elif log.day_status == "comp_off_leave":
-                    paid_leaves += 1.0
-                elif log.day_status == "absent":
-                    if is_expected_working_day:
+                    elif log.day_status == "comp_off_leave":
+                        paid_leaves += 1.0
+                    elif log.day_status == "absent":
+                        total_deductions += 1.0
+                else:
+                    # No log on an expected working day is considered absent (only for past or current days)
+                    if d <= current_date_ist:
                         total_deductions += 1.0
             else:
-                # No log on an expected working day is considered absent (only for past or current days)
-                if is_expected_working_day and d <= current_date_ist:
-                    total_deductions += 1.0
+                # Holiday or Weekend
+                if log:
+                    if log.day_status in ["full_day", "holiday_work"]:
+                        worked_days += 1.0
+                        extra_days_worked += 1.0
+                    elif log.day_status == "half_day":
+                        worked_days += 0.5
+                        extra_days_worked += 0.5
+                    elif log.day_status == "comp_off_leave":
+                        paid_leaves += 1.0
 
-        # Fixed 30 days billing: paid days is 30 minus deductions, capped at 0
-        total_paid_days = max(0.0, 30.0 - total_deductions)
+        # Fixed 30 days billing: paid days is 30 - deductions + extra days worked
+        total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked)
         base_salary = get_employee_monthly_salary(db, emp.id, q_year, q_month, emp.base_salary)
 
         calculated_salary = 0.0
@@ -156,8 +197,10 @@ def get_payroll_summary(
             "total_working_days": 30, # fixed 30 days
             "worked_days": worked_days,
             "paid_leaves": paid_leaves,
+            "extra_days_worked": extra_days_worked,
             "total_paid_days": total_paid_days,
-            "calculated_salary": round(calculated_salary, 2)
+            "calculated_salary": round(calculated_salary, 2),
+            "saturday_policy": user_policy
         })
 
     return {
@@ -278,36 +321,51 @@ def get_my_pay_slip(
     total_deductions = 0.0
     worked_days = 0.0
     paid_leaves = 0.0
+    extra_days_worked = 0.0
+
+    user_policy = current_user.saturday_policy or "alt_sat_holiday"
 
     for day_num in range(1, num_days + 1):
         d = date(q_year, q_month, day_num)
-        is_sun = d.weekday() == 6
-        is_hol = d in holiday_dates
-        is_work_configured = days_map[d.weekday()]
-
+        
         # Is it an expected working day?
-        is_expected_working_day = is_work_configured and not is_sun and not is_hol
+        is_expected_working_day = is_user_expected_working_day(
+            d,
+            user_policy,
+            holiday_dates,
+            days_map
+        )
 
         log = log_by_date.get(d)
-        if log:
-            if log.day_status in ["full_day", "holiday_work"]:
-                worked_days += 1.0
-            elif log.day_status == "half_day":
-                worked_days += 0.5
-                if is_expected_working_day:
+        if is_expected_working_day:
+            if log:
+                if log.day_status in ["full_day", "holiday_work"]:
+                    worked_days += 1.0
+                elif log.day_status == "half_day":
+                    worked_days += 0.5
                     total_deductions += 0.5
-            elif log.day_status == "comp_off_leave":
-                paid_leaves += 1.0
-            elif log.day_status == "absent":
-                if is_expected_working_day:
+                elif log.day_status == "comp_off_leave":
+                    paid_leaves += 1.0
+                elif log.day_status == "absent":
+                    total_deductions += 1.0
+            else:
+                # No log on an expected working day is considered absent (only for past or current days)
+                if d <= current_date_ist:
                     total_deductions += 1.0
         else:
-            # No log on an expected working day is considered absent (only for past or current days)
-            if is_expected_working_day and d <= current_date_ist:
-                total_deductions += 1.0
+            # Holiday or Weekend
+            if log:
+                if log.day_status in ["full_day", "holiday_work"]:
+                    worked_days += 1.0
+                    extra_days_worked += 1.0
+                elif log.day_status == "half_day":
+                    worked_days += 0.5
+                    extra_days_worked += 0.5
+                elif log.day_status == "comp_off_leave":
+                    paid_leaves += 1.0
 
-    # Fixed 30 days billing: paid days is 30 minus deductions, capped at 0
-    total_paid_days = max(0.0, 30.0 - total_deductions)
+    # Fixed 30 days billing: paid days is 30 - deductions + extra days worked
+    total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked)
     base_salary = get_employee_monthly_salary(db, current_user.id, q_year, q_month, current_user.base_salary)
 
     calculated_salary = 0.0
@@ -321,6 +379,8 @@ def get_my_pay_slip(
         "total_working_days": 30, # fixed 30 days
         "worked_days": worked_days,
         "paid_leaves": paid_leaves,
+        "extra_days_worked": extra_days_worked,
         "total_paid_days": total_paid_days,
-        "calculated_salary": round(calculated_salary, 2)
+        "calculated_salary": round(calculated_salary, 2),
+        "saturday_policy": user_policy
     }

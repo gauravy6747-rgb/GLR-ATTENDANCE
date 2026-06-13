@@ -66,6 +66,12 @@ class User(Base):
         nullable=True
     )
 
+    saturday_policy = Column(
+        String,
+        default="alt_sat_holiday",
+        nullable=False
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow
