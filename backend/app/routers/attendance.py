@@ -497,6 +497,8 @@ def all_attendance_records(
             "checkout_photo_url": attendance.checkout_photo_url,
             "checkin_lat": attendance.checkin_lat,
             "checkin_lng": attendance.checkin_lng,
+            "checkin_note": attendance.checkin_note,
+            "checkout_note": attendance.checkout_note,
             "location": matched_location or "Remote"
         })
 

@@ -213,12 +213,28 @@ function AttendancePage() {
                     <td className="p-4">
                       <div className="text-sm font-medium text-gray-900">{formatTimeOnly(record.checkin_time)}</div>
                       <div className="text-[10px] text-gray-400 font-semibold uppercase">{record.checkin_status}</div>
+                      {record.checkin_note && (
+                        <div 
+                          className="mt-1 max-w-[180px] truncate text-[11px] italic text-gray-500 hover:text-gray-700 cursor-help"
+                          title={record.checkin_note}
+                        >
+                          &ldquo;{record.checkin_note}&rdquo;
+                        </div>
+                      )}
                     </td>
                     <td className="p-4">
                       <div className="text-sm font-medium text-gray-900">{formatTimeOnly(record.checkout_time)}</div>
                       <div className="text-[10px] text-gray-400 font-semibold uppercase">
                         {record.checkout_status} {record.total_hours > 0 && `• ${formatHours(record.total_hours)}`}
                       </div>
+                      {record.checkout_note && (
+                        <div 
+                          className="mt-1 max-w-[180px] truncate text-[11px] italic text-gray-500 hover:text-gray-700 cursor-help"
+                          title={record.checkout_note}
+                        >
+                          &ldquo;{record.checkout_note}&rdquo;
+                        </div>
+                      )}
                     </td>
                     <td className="p-4 text-center">
                       <StatusBadge value={record.day_status} />
