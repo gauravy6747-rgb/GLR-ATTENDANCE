@@ -9,7 +9,7 @@ const statusColors = {
   comp_off_leave: "bg-indigo-500 text-white",
 }
 
-export default function AttendanceCalendar({ records, holidays, currentDate }) {
+export default function AttendanceCalendar({ records, holidays, currentDate, selectedDate = null, onSelectDate = null }) {
   const daysInMonth = useMemo(() => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -69,6 +69,7 @@ export default function AttendanceCalendar({ records, holidays, currentDate }) {
     const dateStr = `${daysInMonth.year}-${String(daysInMonth.month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`
     const info = calendarData[dateStr]
     const isToday = dateStr === today
+    const isSelected = dateStr === selectedDate
     
     // Check if this calendar day is a Sunday (getDay === 0)
     const isSunday = new Date(daysInMonth.year, daysInMonth.month, d).getDay() === 0
@@ -77,19 +78,32 @@ export default function AttendanceCalendar({ records, holidays, currentDate }) {
       dayInfo = { type: "holiday", label: "Sunday" }
     }
     
+    let cellStyle = ""
+    if (isSelected) {
+      if (dayInfo) {
+        cellStyle = `${statusColors[dayInfo.type]} ring-2 ring-emerald-600 ring-offset-2 z-10`
+      } else {
+        cellStyle = "border-2 border-emerald-500 bg-emerald-50/30 text-emerald-700 z-10"
+      }
+    } else {
+      cellStyle = dayInfo ? statusColors[dayInfo.type] : "bg-white text-gray-700 border border-gray-100 hover:bg-gray-50"
+    }
+
     days.push(
-      <div 
+      <button 
         key={d} 
-        className={`relative h-10 sm:h-14 flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all
-          ${dayInfo ? statusColors[dayInfo.type] : "bg-white text-gray-700 border border-gray-100"}
-          ${isToday ? "ring-2 ring-emerald-600 ring-offset-2" : ""}
+        type="button"
+        onClick={() => onSelectDate?.(dateStr)}
+        className={`relative h-10 sm:h-14 flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95 outline-none
+          ${cellStyle}
+          ${isToday && !isSelected ? "ring-2 ring-emerald-600 ring-offset-2" : ""}
         `}
       >
         <span>{d}</span>
         {dayInfo?.type === "holiday" && (
-          <div className="absolute bottom-1 h-1 w-1 rounded-full bg-white/50" />
+          <div className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-white/60" />
         )}
-      </div>
+      </button>
     )
   }
 

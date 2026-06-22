@@ -292,11 +292,21 @@ def get_employee_stats(
                     "checkout_photo_url": None
                 }
 
+    calendar_records = [
+        {
+            "date": str(log.date),
+            "day_status": log.day_status,
+            "total_hours": log.total_hours
+        }
+        for log in monthly_logs
+    ]
+
     return {
         "employee_name": user.name,
         "employee_id": user.employee_id,
         "query_year": q_year,
         "query_month": q_month,
+        "records": calendar_records,
         "yearly_stats": {
             "total_hours": round(yearly_hours, 2),
             "worked_days": yearly_worked_days,

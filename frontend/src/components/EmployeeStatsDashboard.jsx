@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import api, { getApiErrorMessage } from "../api/axios"
+import AttendanceCalendar from "./AttendanceCalendar"
 
 const getISTComponents = () => {
   const options = {
@@ -41,15 +42,51 @@ function formatHours(value) {
   return `${finalHrs} hrs ${finalMins} mins`
 }
 
-export default function EmployeeStatsDashboard({ user_id = null }) {
+export default function EmployeeStatsDashboard({ user_id = null, initialDate = null }) {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [holidays, setHolidays] = useState([])
 
-  const ist = getISTComponents()
-  const [year, setYear] = useState(ist.year)
-  const [month, setMonth] = useState(ist.month)
-  const [selectedDate, setSelectedDate] = useState(ist.dateStr)
+  const getInitialDateState = () => {
+    if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
+      const [y, m] = initialDate.split("-").map(Number)
+      return { year: y, month: m, dateStr: initialDate }
+    }
+    const ist = getISTComponents()
+    return { year: ist.year, month: ist.month, dateStr: ist.dateStr }
+  };
+
+  const initialState = getInitialDateState()
+  const [year, setYear] = useState(initialState.year)
+  const [month, setMonth] = useState(initialState.month)
+  const [selectedDate, setSelectedDate] = useState(initialState.dateStr)
+
+  useEffect(() => {
+    if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
+      const [y, m] = initialDate.split("-").map(Number)
+      setYear(y)
+      setMonth(m)
+      setSelectedDate(initialDate)
+    }
+  }, [initialDate])
+
+  const updateSelectedYearMonth = (newYear, newMonth) => {
+    setYear(newYear)
+    setMonth(newMonth)
+    const pad = (num) => String(num).padStart(2, "0")
+    setSelectedDate(`${newYear}-${pad(newMonth)}-01`)
+  }
+
+  useEffect(() => {
+    api.get("/company/holidays")
+      .then((res) => {
+        setHolidays(res.data || [])
+      })
+      .catch((err) => {
+        console.error("Failed to load holidays in stats dashboard:", err)
+      })
+  }, [])
 
   const fetchStats = () => {
     setLoading(true)
@@ -108,7 +145,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
               <label className="mb-1 block text-[10px] font-bold uppercase text-gray-400">Year</label>
               <select
                 value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
+                onChange={(e) => updateSelectedYearMonth(Number(e.target.value), month)}
                 className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-500 focus:bg-white"
               >
                 {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -119,7 +156,7 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
               <label className="mb-1 block text-[10px] font-bold uppercase text-gray-400">Month</label>
               <select
                 value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
+                onChange={(e) => updateSelectedYearMonth(year, Number(e.target.value))}
                 className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-500 focus:bg-white"
               >
                 {months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -240,130 +277,188 @@ export default function EmployeeStatsDashboard({ user_id = null }) {
               </div>
             </div>
 
-            {/* Single Day Detail Card */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">📌</span>
-                  <h4 className="text-sm font-bold uppercase tracking-wider text-gray-900">Details for {formatDate(selectedDate)}</h4>
-                </div>
-                {stats.single_day_detail && (
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${
-                    stats.single_day_detail.day_status === "full_day" ? "bg-emerald-100 text-emerald-700" :
-                    stats.single_day_detail.day_status === "half_day" ? "bg-amber-100 text-amber-700" :
-                    stats.single_day_detail.day_status === "holiday_work" ? "bg-purple-100 text-purple-700" :
-                    stats.single_day_detail.day_status === "comp_off_leave" ? "bg-indigo-100 text-indigo-700" :
-                    stats.single_day_detail.day_status === "holiday" ? "bg-blue-100 text-blue-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}>
-                    {stats.single_day_detail.day_status.replaceAll("_", " ")}
-                  </span>
-                )}
-              </div>
-
-              {!stats.single_day_detail ? (
-                <div className="py-8 text-center text-sm font-medium text-gray-400">
-                  No attendance logged on this date.
-                </div>
-              ) : (
-                <div className="space-y-6 pt-2">
-                  {stats.single_day_detail.day_status === "holiday" ? (
-                    <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-6 text-center space-y-2 my-2">
-                      <span className="text-3xl">🎉</span>
-                      <h5 className="text-base font-bold text-blue-950">Scheduled Holiday / Weekend</h5>
-                      <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">{stats.single_day_detail.checkin_note || "Official Non-Working Holiday"}</p>
-                      <p className="text-xs text-gray-500">No attendance check-in is required or recorded for this holiday.</p>
+            {/* Interactive Calendar & Single Day Details Grid */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Calendar Card */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">📅</span>
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-gray-900">Attendance Calendar</h4>
                     </div>
-                  ) : (
-                    <>
-                      <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                          <p className="text-xs font-bold uppercase text-gray-400">Check In</p>
-                          <p className="text-lg font-bold text-gray-900 mt-1">{formatTime(stats.single_day_detail.checkin_time)}</p>
-                          <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkin_status || "-"}</p>
-                        </div>
-
-                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                          <p className="text-xs font-bold uppercase text-gray-400">Check Out</p>
-                          <p className="text-lg font-bold text-gray-900 mt-1">{formatTime(stats.single_day_detail.checkout_time)}</p>
-                          <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkout_status || "-"}</p>
-                        </div>
-
-                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                          <p className="text-xs font-bold uppercase text-gray-400">Hours Worked</p>
-                          <p className="text-lg font-bold text-emerald-600 mt-1">
-                            {stats.single_day_detail.total_hours ? formatHours(stats.single_day_detail.total_hours) : "--"}
-                          </p>
-                          <p className="text-[10px] font-bold uppercase text-gray-400 mt-0.5">Calculated active time</p>
-                        </div>
-                      </div>
-
-                      {/* Notes & Comments */}
-                      {(stats.single_day_detail.checkin_note || stats.single_day_detail.checkout_note) && (
-                        <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 space-y-3">
-                          {stats.single_day_detail.checkin_note && (
-                            <div>
-                              <p className="text-[10px] font-bold uppercase text-gray-400">Check In Note</p>
-                              <p className="text-sm italic text-gray-700 mt-1">&ldquo;{stats.single_day_detail.checkin_note}&rdquo;</p>
-                            </div>
-                          )}
-                          {stats.single_day_detail.checkout_note && (
-                            <div className="border-t border-gray-200/50 pt-2">
-                              <p className="text-[10px] font-bold uppercase text-gray-400">Check Out Note</p>
-                              <p className="text-sm italic text-gray-700 mt-1">&ldquo;{stats.single_day_detail.checkout_note}&rdquo;</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Verification Photos */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs font-bold uppercase text-gray-400 mb-2">Check In Verification Photo</p>
-                      {stats.single_day_detail.checkin_photo_url ? (
-                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-                          <img
-                            src={`/attendance/photo?path=${encodeURIComponent(stats.single_day_detail.checkin_photo_url)}`}
-                            alt="Check In Selfie"
-                            className="h-48 w-full object-cover transition duration-300 hover:scale-105"
-                            onError={(e) => {
-                              e.target.onerror = null
-                              e.target.src = "https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=400"
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-gray-300 text-xs font-semibold text-gray-400 bg-gray-50">
-                          No check-in photo recorded
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase text-gray-400 mb-2">Check Out Verification Photo</p>
-                      {stats.single_day_detail.checkout_photo_url ? (
-                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-                          <img
-                            src={`/attendance/photo?path=${encodeURIComponent(stats.single_day_detail.checkout_photo_url)}`}
-                            alt="Check Out Selfie"
-                            className="h-48 w-full object-cover transition duration-300 hover:scale-105"
-                            onError={(e) => {
-                              e.target.onerror = null
-                              e.target.src = "https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=400"
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-gray-300 text-xs font-semibold text-gray-400 bg-gray-50">
-                          No check-out photo recorded
-                        </div>
-                      )}
+                    {/* Calendar Month Pager */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const prev = new Date(year, month - 2, 1)
+                          updateSelectedYearMonth(prev.getFullYear(), prev.getMonth() + 1)
+                        }}
+                        className="rounded-lg p-1.5 hover:bg-gray-100 text-gray-600 transition"
+                        title="Previous Month"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <span className="text-xs font-bold text-gray-700 px-1">
+                        {months.find(m => m.value === month)?.label} {year}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const next = new Date(year, month, 1)
+                          updateSelectedYearMonth(next.getFullYear(), next.getMonth() + 1)
+                        }}
+                        className="rounded-lg p-1.5 hover:bg-gray-100 text-gray-600 transition"
+                        title="Next Month"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+                  <AttendanceCalendar
+                    records={stats.records || []}
+                    holidays={holidays}
+                    currentDate={new Date(year, month - 1, 1)}
+                    selectedDate={selectedDate}
+                    onSelectDate={(dateStr) => {
+                      setSelectedDate(dateStr)
+                    }}
+                  />
                 </div>
-              )}
+              </div>
+
+              {/* Single Day Detail Card */}
+              <div className="lg:col-span-1">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4 h-full flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">📌</span>
+                        <h4 className="text-sm font-bold uppercase tracking-wider text-gray-900">Details for {formatDate(selectedDate)}</h4>
+                      </div>
+                      {stats.single_day_detail && (
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
+                          stats.single_day_detail.day_status === "full_day" ? "bg-emerald-100 text-emerald-700" :
+                          stats.single_day_detail.day_status === "half_day" ? "bg-amber-100 text-amber-700" :
+                          stats.single_day_detail.day_status === "holiday_work" ? "bg-purple-100 text-purple-700" :
+                          stats.single_day_detail.day_status === "comp_off_leave" ? "bg-indigo-100 text-indigo-700" :
+                          stats.single_day_detail.day_status === "holiday" ? "bg-blue-100 text-blue-700" :
+                          "bg-gray-100 text-gray-700"
+                        }`}>
+                          {stats.single_day_detail.day_status.replaceAll("_", " ")}
+                        </span>
+                      )}
+                    </div>
+
+                    {!stats.single_day_detail ? (
+                      <div className="py-12 text-center text-sm font-medium text-gray-400">
+                        No attendance logged on this date.
+                      </div>
+                    ) : (
+                      <div className="space-y-4 pt-3">
+                        {stats.single_day_detail.day_status === "holiday" ? (
+                          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-5 text-center space-y-2">
+                            <span className="text-2xl">🎉</span>
+                            <h5 className="text-sm font-bold text-blue-950">Scheduled Holiday / Weekend</h5>
+                            <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">{stats.single_day_detail.checkin_note || "Official Non-Working Holiday"}</p>
+                            <p className="text-xs text-gray-500">No attendance check-in required.</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="grid gap-3 grid-cols-1">
+                              <div className="rounded-xl bg-gray-50 p-3.5 border border-gray-100">
+                                <p className="text-[10px] font-bold uppercase text-gray-400">Check In</p>
+                                <p className="text-sm font-bold text-gray-900 mt-0.5">{formatTime(stats.single_day_detail.checkin_time)}</p>
+                                <p className="text-[9px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkin_status || "-"}</p>
+                              </div>
+
+                              <div className="rounded-xl bg-gray-50 p-3.5 border border-gray-100">
+                                <p className="text-[10px] font-bold uppercase text-gray-400">Check Out</p>
+                                <p className="text-sm font-bold text-gray-900 mt-0.5">{formatTime(stats.single_day_detail.checkout_time)}</p>
+                                <p className="text-[9px] font-bold uppercase text-gray-400 mt-0.5">{stats.single_day_detail.checkout_status || "-"}</p>
+                              </div>
+
+                              <div className="rounded-xl bg-gray-50 p-3.5 border border-gray-100">
+                                <p className="text-[10px] font-bold uppercase text-gray-400">Hours Worked</p>
+                                <p className="text-sm font-bold text-emerald-600 mt-0.5">
+                                  {stats.single_day_detail.total_hours ? formatHours(stats.single_day_detail.total_hours) : "--"}
+                                </p>
+                                <p className="text-[9px] font-bold uppercase text-gray-400 mt-0.5">Calculated active time</p>
+                              </div>
+                            </div>
+
+                            {/* Notes & Comments */}
+                            {(stats.single_day_detail.checkin_note || stats.single_day_detail.checkout_note) && (
+                              <div className="rounded-xl bg-gray-50 p-3.5 border border-gray-100 space-y-2">
+                                {stats.single_day_detail.checkin_note && (
+                                  <div>
+                                    <p className="text-[9px] font-bold uppercase text-gray-400">Check In Note</p>
+                                    <p className="text-xs italic text-gray-700 mt-0.5">&ldquo;{stats.single_day_detail.checkin_note}&rdquo;</p>
+                                  </div>
+                                )}
+                                {stats.single_day_detail.checkout_note && (
+                                  <div className="border-t border-gray-200/50 pt-1.5">
+                                    <p className="text-[9px] font-bold uppercase text-gray-400">Check Out Note</p>
+                                    <p className="text-xs italic text-gray-700 mt-0.5">&ldquo;{stats.single_day_detail.checkout_note}&rdquo;</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Verification Photos */}
+                        <div className="grid gap-3 grid-cols-2">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase text-gray-400 mb-1">Check In Selfie</p>
+                            {stats.single_day_detail.checkin_photo_url ? (
+                              <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                                <img
+                                  src={`/attendance/photo?path=${encodeURIComponent(stats.single_day_detail.checkin_photo_url)}`}
+                                  alt="Check In Selfie"
+                                  className="h-24 w-full object-cover transition duration-300 hover:scale-105"
+                                  onError={(e) => {
+                                    e.target.onerror = null
+                                    e.target.src = "https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=400"
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-gray-300 text-[9px] font-semibold text-gray-400 bg-gray-50">
+                                No photo
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="text-[9px] font-bold uppercase text-gray-400 mb-1">Check Out Selfie</p>
+                            {stats.single_day_detail.checkout_photo_url ? (
+                              <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                                <img
+                                  src={`/attendance/photo?path=${encodeURIComponent(stats.single_day_detail.checkout_photo_url)}`}
+                                  alt="Check Out Selfie"
+                                  className="h-24 w-full object-cover transition duration-300 hover:scale-105"
+                                  onError={(e) => {
+                                    e.target.onerror = null
+                                    e.target.src = "https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?w=400"
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-gray-300 text-[9px] font-semibold text-gray-400 bg-gray-50">
+                                No photo
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )

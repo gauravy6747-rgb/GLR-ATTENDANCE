@@ -55,6 +55,7 @@ export default function MyAttendancePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [view, setView] = useState("calendar") // calendar | list
+  const [selectedStatsDate, setSelectedStatsDate] = useState(null)
 
   useEffect(() => {
     Promise.all([
@@ -181,7 +182,16 @@ export default function MyAttendancePage() {
 
         {/* Calendar View */}
         {!loading && !error && view === "calendar" && (
-          <AttendanceCalendar records={records} holidays={holidays} currentDate={currentDate} />
+          <AttendanceCalendar
+            records={records}
+            holidays={holidays}
+            currentDate={currentDate}
+            selectedDate={selectedStatsDate}
+            onSelectDate={(dateStr) => {
+              setSelectedStatsDate(dateStr)
+              setView("stats")
+            }}
+          />
         )}
 
         {/* Records list View */}
@@ -219,7 +229,7 @@ export default function MyAttendancePage() {
 
         {/* Stats Dashboard View */}
         {!loading && !error && view === "stats" && (
-          <EmployeeStatsDashboard />
+          <EmployeeStatsDashboard initialDate={selectedStatsDate} />
         )}
 
         {/* Payroll Slip View */}
