@@ -67,6 +67,17 @@ function formatStatus(value) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+function getMoodEmoji(mood) {
+  const map = {
+    stressed: "😫",
+    down: "🙁",
+    neutral: "😐",
+    good: "🙂",
+    great: "😄"
+  }
+  return map[mood] || ""
+}
+
 function getStatusClass(value) {
   const status = value ?? ""
   if (["full_day", "on_time", "on_time_out", "present"].includes(status)) return "bg-green-100 text-green-700"
@@ -213,6 +224,12 @@ function AttendancePage() {
                     <td className="p-4">
                       <div className="text-sm font-medium text-gray-900">{formatTimeOnly(record.checkin_time)}</div>
                       <div className="text-[10px] text-gray-400 font-semibold uppercase">{record.checkin_status}</div>
+                      {record.checkin_mood && (
+                        <div className="mt-1 flex items-center gap-1 text-[11px]" title={record.checkin_mood_note || `Feeling ${record.checkin_mood}`}>
+                          <span>{getMoodEmoji(record.checkin_mood)}</span>
+                          <span className="font-bold text-gray-600 capitalize">{record.checkin_mood}</span>
+                        </div>
+                      )}
                       {record.checkin_note && (
                         <div 
                           className="mt-1 max-w-[180px] truncate text-[11px] italic text-gray-500 hover:text-gray-700 cursor-help"
@@ -227,6 +244,12 @@ function AttendancePage() {
                       <div className="text-[10px] text-gray-400 font-semibold uppercase">
                         {record.checkout_status} {record.total_hours > 0 && `• ${formatHours(record.total_hours)}`}
                       </div>
+                      {record.checkout_mood && (
+                        <div className="mt-1 flex items-center gap-1 text-[11px]" title={record.checkout_mood_note || `Feeling ${record.checkout_mood}`}>
+                          <span>{getMoodEmoji(record.checkout_mood)}</span>
+                          <span className="font-bold text-gray-600 capitalize">{record.checkout_mood}</span>
+                        </div>
+                      )}
                       {record.checkout_note && (
                         <div 
                           className="mt-1 max-w-[180px] truncate text-[11px] italic text-gray-500 hover:text-gray-700 cursor-help"

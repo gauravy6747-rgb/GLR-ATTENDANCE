@@ -595,6 +595,10 @@ def all_attendance_records(
             "checkin_lng": attendance.checkin_lng,
             "checkin_note": attendance.checkin_note,
             "checkout_note": attendance.checkout_note,
+            "checkin_mood": attendance.checkin_mood,
+            "checkin_mood_note": attendance.checkin_mood_note,
+            "checkout_mood": attendance.checkout_mood,
+            "checkout_mood_note": attendance.checkout_mood_note,
             "location": matched_location or "Remote"
         })
 
