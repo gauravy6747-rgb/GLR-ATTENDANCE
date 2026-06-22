@@ -48,12 +48,13 @@ export default function EmployeeStatsDashboard({ user_id = null, initialDate = n
   const [error, setError] = useState("")
   const [holidays, setHolidays] = useState([])
 
+  const ist = getISTComponents()
+
   const getInitialDateState = () => {
     if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
       const [y, m] = initialDate.split("-").map(Number)
       return { year: y, month: m, dateStr: initialDate }
     }
-    const ist = getISTComponents()
     return { year: ist.year, month: ist.month, dateStr: ist.dateStr }
   };
 
