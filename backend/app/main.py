@@ -6,7 +6,7 @@ from app.core.database import engine, Base
 
 # ── Import ALL models so create_all registers every table ──────────────────
 from app.models.user import User  # noqa: F401
-from app.models.attendance import AttendanceLog  # noqa: F401
+from app.models.attendance import AttendanceLog, AttendanceInterval  # noqa: F401
 from app.models.company import Company, Location  # noqa: F401
 from app.models.holiday import Holiday  # noqa: F401
 from app.models.working_days import WorkingDaysConfig  # noqa: F401

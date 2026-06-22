@@ -8,12 +8,16 @@ class CheckInRequest(BaseModel):
     longitude: float
     note: Optional[str] = None
     photo: Optional[str] = None
+    mood: Optional[str] = None
+    mood_note: Optional[str] = None
 
 class CheckOutRequest(BaseModel):
     latitude: float
     longitude: float
     note: Optional[str] = None
     photo: Optional[str] = None
+    mood: Optional[str] = None
+    mood_note: Optional[str] = None
 
 class OverrideRequest(BaseModel):
     day_status: str
@@ -33,6 +37,10 @@ class AttendanceResponse(BaseModel):
     day_status: Optional[str] = None
     is_manual_override: bool = False
     is_anomaly_flagged: bool = False
+    checkin_mood: Optional[str] = None
+    checkin_mood_note: Optional[str] = None
+    checkout_mood: Optional[str] = None
+    checkout_mood_note: Optional[str] = None
 
     class Config:
         from_attributes = True

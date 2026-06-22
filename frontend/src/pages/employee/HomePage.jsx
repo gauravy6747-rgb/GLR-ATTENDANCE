@@ -109,6 +109,8 @@ export default function HomePage() {
   const [step, setStep] = useState("idle")     // idle | camera | note | gps | submitting
   const [countdown, setCountdown] = useState(null)
   const [note, setNote] = useState("")
+  const [mood, setMood] = useState("neutral")
+  const [moodNote, setMoodNote] = useState("")
   const [capturedPhoto, setCapturedPhoto] = useState(null)
   const [stream, setStream] = useState(null)
   const [error, setError] = useState("")
@@ -234,6 +236,8 @@ export default function HomePage() {
   const startFlow = async (actionType) => {
     setAction(actionType)
     setNote("")
+    setMood("neutral")
+    setMoodNote("")
     if (isWfhToday) {
       setCapturedPhoto(null)
       setStep("note")
@@ -280,9 +284,9 @@ export default function HomePage() {
     try {
       const coords = isWfhToday ? { latitude: 0.0, longitude: 0.0 } : await getGPS()
       if (action === "checkin") {
-        await checkin(coords.latitude, coords.longitude, note || null, capturedPhoto)
+        await checkin(coords.latitude, coords.longitude, note || null, capturedPhoto, mood, moodNote || null)
       } else {
-        await checkout(coords.latitude, coords.longitude, note || null, capturedPhoto)
+        await checkout(coords.latitude, coords.longitude, note || null, capturedPhoto, mood, moodNote || null)
       }
       setSuccessMsg(action === "checkin" ? "Checked in successfully!" : "Checked out successfully!")
       setStep("idle")
@@ -298,6 +302,8 @@ export default function HomePage() {
     setStep("idle")
     setAction(null)
     setError("")
+    setMood("neutral")
+    setMoodNote("")
   }
 
   const checkedIn = !!today?.checkin_time
@@ -371,6 +377,53 @@ export default function HomePage() {
               <img src={capturedPhoto} alt="Your selfie" className="w-full object-cover" style={{ maxHeight: 200 }} />
             </div>
           )}
+
+          {/* Mood Selector Section */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">
+              How are you feeling {action === "checkin" ? "at check-in" : "at check-out"}?
+            </label>
+            <div className="grid grid-cols-5 gap-2">
+              {[
+                { value: "stressed", emoji: "😫", label: "Stressed" },
+                { value: "down", emoji: "🙁", label: "Down" },
+                { value: "neutral", emoji: "😐", label: "Neutral" },
+                { value: "good", emoji: "🙂", label: "Good" },
+                { value: "great", emoji: "😄", label: "Great" },
+              ].map((opt) => {
+                const isSelected = mood === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setMood(opt.value)}
+                    className={`flex flex-col items-center justify-center rounded-xl border p-2.5 transition active:scale-95 duration-150 ${
+                      isSelected
+                        ? "border-emerald-600 bg-emerald-50/60 font-semibold text-emerald-700 ring-2 ring-emerald-100"
+                        : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="text-2xl mb-1">{opt.emoji}</span>
+                    <span className="text-[10px]">{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Mood description input */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Describe your mood <span className="font-normal text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={moodNote}
+              onChange={(e) => setMoodNote(e.target.value.slice(0, 100))}
+              placeholder="e.g. Feeling motivated today..."
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            />
+          </div>
 
           {/* Note input */}
           <div>
@@ -519,16 +572,28 @@ export default function HomePage() {
         {/* Action buttons */}
         {!loading && (
           <div className="space-y-3">
-            {!checkedIn && (
-              <button
-                onClick={() => startFlow("checkin")}
-                className="w-full rounded-2xl bg-emerald-600 py-5 text-lg font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-95"
-              >
-                CHECK IN
-              </button>
+            {(!today || !today.is_checked_in) && (
+              <>
+                {today && (
+                  <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <span className="relative flex h-3 w-3">
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-gray-400" />
+                    </span>
+                    <p className="text-sm font-semibold text-gray-600">
+                      Currently checked out • {formatHours(today.total_hours)} worked today
+                    </p>
+                  </div>
+                )}
+                <button
+                  onClick={() => startFlow("checkin")}
+                  className="w-full rounded-2xl bg-emerald-600 py-5 text-lg font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-95"
+                >
+                  {today ? "CHECK IN AGAIN" : "CHECK IN"}
+                </button>
+              </>
             )}
 
-            {checkedIn && !checkedOut && (
+            {today && today.is_checked_in && (
               <>
                 <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                   <span className="relative flex h-3 w-3">
@@ -546,18 +611,6 @@ export default function HomePage() {
                   CHECK OUT
                 </button>
               </>
-            )}
-
-            {checkedIn && checkedOut && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
-                <p className="text-sm font-semibold text-gray-500">All done for today!</p>
-                <p className="mt-1 text-2xl font-bold text-gray-950">
-                  {formatHours(today.total_hours)} worked
-                </p>
-                <div className="mt-3">
-                  <StatusBadge status={today.day_status} />
-                </div>
-              </div>
             )}
           </div>
         )}

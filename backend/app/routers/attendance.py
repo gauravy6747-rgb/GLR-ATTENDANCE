@@ -167,11 +167,21 @@ def checkin(
         AttendanceLog.date == today
     ).first()
 
+    from app.models.attendance import AttendanceInterval
+
     if existing_attendance:
-        raise HTTPException(
-            status_code=400,
-            detail="Already checked in today"
-        )
+        active_interval = db.query(AttendanceInterval).filter(
+            AttendanceInterval.attendance_log_id == existing_attendance.id,
+            AttendanceInterval.checkout_time == None
+        ).first()
+        if active_interval:
+            raise HTTPException(
+                status_code=400,
+                detail="Already checked in"
+            )
+        attendance = existing_attendance
+    else:
+        attendance = None
 
     if is_wfh:
         photo_url = None
@@ -200,20 +210,36 @@ def checkin(
     elif now.hour >= 11:
         checkin_status = "late"
 
-    attendance = AttendanceLog(
-        user_id=current_user.id,
-        date=today,
+    if not attendance:
+        attendance = AttendanceLog(
+            user_id=current_user.id,
+            date=today,
+            checkin_time=now,
+            checkin_lat=location_data.latitude,
+            checkin_lng=location_data.longitude,
+            checkin_photo_url=face_result["photo_url"],
+            checkin_note=location_data.note,
+            checkin_face_score=face_result["score"],
+            checkin_status=checkin_status,
+            day_status="present",
+            checkin_mood=location_data.mood,
+            checkin_mood_note=location_data.mood_note
+        )
+        db.add(attendance)
+        db.flush()
+
+    new_interval = AttendanceInterval(
+        attendance_log_id=attendance.id,
         checkin_time=now,
         checkin_lat=location_data.latitude,
         checkin_lng=location_data.longitude,
         checkin_photo_url=face_result["photo_url"],
         checkin_note=location_data.note,
         checkin_face_score=face_result["score"],
-        checkin_status=checkin_status,
-        day_status="present"
+        checkin_mood=location_data.mood,
+        checkin_mood_note=location_data.mood_note
     )
-
-    db.add(attendance)
+    db.add(new_interval)
     db.commit()
     db.refresh(attendance)
 
@@ -281,10 +307,16 @@ def checkout(
             detail="No check-in found today"
         )
 
-    if attendance.checkout_time:
+    from app.models.attendance import AttendanceInterval
+    active_interval = db.query(AttendanceInterval).filter(
+        AttendanceInterval.attendance_log_id == attendance.id,
+        AttendanceInterval.checkout_time == None
+    ).first()
+
+    if not active_interval:
         raise HTTPException(
             status_code=400,
-            detail="Already checked out today"
+            detail="No active check-in session found"
         )
 
     if is_wfh:
@@ -308,19 +340,39 @@ def checkout(
 
     now = now_ist()   # IST-aware datetime
 
+    # Update the active interval session
+    active_interval.checkout_time = now
+    active_interval.checkout_lat = location_data.latitude
+    active_interval.checkout_lng = location_data.longitude
+    active_interval.checkout_photo_url = face_result["photo_url"]
+    active_interval.checkout_note = location_data.note
+    active_interval.checkout_face_score = face_result["score"]
+    active_interval.checkout_mood = location_data.mood
+    active_interval.checkout_mood_note = location_data.mood_note
+
+    # Calculate duration of the current session
+    checkin_naive = active_interval.checkin_time.replace(tzinfo=None)
+    interval_seconds = (now - checkin_naive).total_seconds()
+    active_interval.duration_hours = round(interval_seconds / 3600, 2)
+
+    db.flush()
+
+    # Sum up durations of all completed sessions today
+    intervals = db.query(AttendanceInterval).filter(
+        AttendanceInterval.attendance_log_id == attendance.id
+    ).all()
+    total_hours = sum(i.duration_hours or 0.0 for i in intervals)
+    total_hours = round(total_hours, 2)
+
+    # Update summary daily log
     attendance.checkout_time = now
     attendance.checkout_lat = location_data.latitude
     attendance.checkout_lng = location_data.longitude
     attendance.checkout_photo_url = face_result["photo_url"]
     attendance.checkout_note = location_data.note
     attendance.checkout_face_score = face_result["score"]
-
-    # Defensively strip any tzinfo from the DB-returned checkin_time so both
-    # sides of the subtraction are naive IST datetimes — prevents wrong durations
-    # if the DB driver (psycopg2/Neon) returns a timezone-aware datetime.
-    checkin_naive = attendance.checkin_time.replace(tzinfo=None)
-    total_seconds = (now - checkin_naive).total_seconds()
-    total_hours = round(total_seconds / 3600, 2)
+    attendance.checkout_mood = location_data.mood
+    attendance.checkout_mood_note = location_data.mood_note
     attendance.total_hours = total_hours
 
     # PHASE 3: COMP-OFF LOGIC
@@ -355,16 +407,30 @@ def checkout(
         # For comp-off work hours requirement
         expected_full_hours = 6.5 if (today.weekday() == 5 and current_user.saturday_policy == "all_sat_half_day") else 8.5
         amount_earned = 1.0 if total_hours >= expected_full_hours else (0.5 if total_hours >= 4.5 else 0.0)
-        balance.days_earned = float(balance.days_earned or 0) + amount_earned
         
-        txn = CompOffTransaction(
-            user_id=current_user.id,
-            type="earned",
-            amount=amount_earned,
-            reference_date=today,
-            notes=f"Worked {'full' if total_hours >= expected_full_hours else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
-        )
-        db.add(txn)
+        # Update existing earned txn if any, to avoid duplication across checkins/checkouts
+        txn = db.query(CompOffTransaction).filter(
+            CompOffTransaction.user_id == current_user.id,
+            CompOffTransaction.reference_date == today,
+            CompOffTransaction.type == "earned"
+        ).first()
+
+        old_amount = txn.amount if txn else 0.0
+        diff = amount_earned - old_amount
+        balance.days_earned = float(balance.days_earned or 0) + diff
+
+        if txn:
+            txn.amount = amount_earned
+            txn.notes = f"Worked {'full' if total_hours >= expected_full_hours else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
+        else:
+            txn = CompOffTransaction(
+                user_id=current_user.id,
+                type="earned",
+                amount=amount_earned,
+                reference_date=today,
+                notes=f"Worked {'full' if total_hours >= expected_full_hours else 'half' if total_hours >= 4.5 else 'zero'} day ({total_hours} hrs) on a holiday/weekend"
+            )
+            db.add(txn)
     else:
         # Expected working day
         expected_full_hours = 6.5 if (today.weekday() == 5 and current_user.saturday_policy == "all_sat_half_day") else 8.5
@@ -405,9 +471,39 @@ def today_attendance(
     ).first()
 
     if not attendance:
-        return {"message": "No attendance today"}
+        return {"message": "No attendance today", "is_checked_in": False}
 
-    return attendance
+    from app.models.attendance import AttendanceInterval
+    active_interval = db.query(AttendanceInterval).filter(
+        AttendanceInterval.attendance_log_id == attendance.id,
+        AttendanceInterval.checkout_time == None
+    ).first()
+
+    is_checked_in = active_interval is not None
+
+    resp = {
+        "id": str(attendance.id),
+        "user_id": str(attendance.user_id),
+        "date": attendance.date,
+        "checkin_time": attendance.checkin_time,
+        "checkout_time": attendance.checkout_time,
+        "total_hours": attendance.total_hours,
+        "checkin_status": attendance.checkin_status,
+        "checkout_status": attendance.checkout_status,
+        "day_status": attendance.day_status,
+        "checkin_photo_url": attendance.checkin_photo_url,
+        "checkout_photo_url": attendance.checkout_photo_url,
+        "checkin_note": attendance.checkin_note,
+        "checkout_note": attendance.checkout_note,
+        "is_manual_override": attendance.is_manual_override,
+        "is_anomaly_flagged": attendance.is_anomaly_flagged,
+        "checkin_mood": attendance.checkin_mood,
+        "checkin_mood_note": attendance.checkin_mood_note,
+        "checkout_mood": attendance.checkout_mood,
+        "checkout_mood_note": attendance.checkout_mood_note,
+        "is_checked_in": is_checked_in
+    }
+    return resp
 
 
 @router.get(

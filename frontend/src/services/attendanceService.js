@@ -16,13 +16,13 @@ export const getMyHistory = async () => {
   return response.data
 }
 
-export const checkin = async (latitude, longitude, note = null, photo = null) => {
-  const response = await api.post("/attendance/checkin", { latitude, longitude, note, photo })
+export const checkin = async (latitude, longitude, note = null, photo = null, mood = null, mood_note = null) => {
+  const response = await api.post("/attendance/checkin", { latitude, longitude, note, photo, mood, mood_note })
   return response.data
 }
 
-export const checkout = async (latitude, longitude, note = null, photo = null) => {
-  const response = await api.post("/attendance/checkout", { latitude, longitude, note, photo })
+export const checkout = async (latitude, longitude, note = null, photo = null, mood = null, mood_note = null) => {
+  const response = await api.post("/attendance/checkout", { latitude, longitude, note, photo, mood, mood_note })
   return response.data
 }
 

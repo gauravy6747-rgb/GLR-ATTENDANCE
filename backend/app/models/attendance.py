@@ -71,7 +71,55 @@ class AttendanceLog(Base):
     # 'drift' | 'impossible_travel'
     anomaly_type = Column(String(30), nullable=True)
 
+    # --- Mood tracking ---
+    checkin_mood = Column(String(50), nullable=True)
+    checkin_mood_note = Column(Text, nullable=True)
+    checkout_mood = Column(String(50), nullable=True)
+    checkout_mood_note = Column(Text, nullable=True)
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow
     )
+
+
+class AttendanceInterval(Base):
+    __tablename__ = "attendance_intervals"
+
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+
+    attendance_log_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("attendance_logs.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    checkin_time = Column(DateTime, nullable=False)
+    checkin_lat = Column(Float, nullable=True)
+    checkin_lng = Column(Float, nullable=True)
+    checkin_photo_url = Column(Text, nullable=True)
+    checkin_note = Column(String(280), nullable=True)
+    checkin_face_score = Column(Float, nullable=True)
+    checkin_mood = Column(String(50), nullable=True)
+    checkin_mood_note = Column(Text, nullable=True)
+
+    checkout_time = Column(DateTime, nullable=True)
+    checkout_lat = Column(Float, nullable=True)
+    checkout_lng = Column(Float, nullable=True)
+    checkout_photo_url = Column(Text, nullable=True)
+    checkout_note = Column(String(280), nullable=True)
+    checkout_face_score = Column(Float, nullable=True)
+    checkout_mood = Column(String(50), nullable=True)
+    checkout_mood_note = Column(Text, nullable=True)
+
+    duration_hours = Column(Float, default=0.0)
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+

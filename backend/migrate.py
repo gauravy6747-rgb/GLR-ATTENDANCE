@@ -53,7 +53,39 @@ add_column_if_missing("attendance_logs", "override_at",          "TIMESTAMP")
 add_column_if_missing("attendance_logs", "override_note",        "TEXT")
 add_column_if_missing("attendance_logs", "is_anomaly_flagged",   "BOOLEAN", "FALSE")
 add_column_if_missing("attendance_logs", "anomaly_type",         "VARCHAR(30)")
+add_column_if_missing("attendance_logs", "checkin_mood",         "VARCHAR(50)")
+add_column_if_missing("attendance_logs", "checkin_mood_note",    "TEXT")
+add_column_if_missing("attendance_logs", "checkout_mood",        "VARCHAR(50)")
+add_column_if_missing("attendance_logs", "checkout_mood_note",   "TEXT")
+
+print("\n-- attendance_intervals -----------------------------------")
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS attendance_intervals (
+        id UUID PRIMARY KEY,
+        attendance_log_id UUID NOT NULL REFERENCES attendance_logs(id) ON DELETE CASCADE,
+        checkin_time TIMESTAMP NOT NULL,
+        checkin_lat FLOAT,
+        checkin_lng FLOAT,
+        checkin_photo_url TEXT,
+        checkin_note VARCHAR(280),
+        checkin_face_score FLOAT,
+        checkin_mood VARCHAR(50),
+        checkin_mood_note TEXT,
+        checkout_time TIMESTAMP,
+        checkout_lat FLOAT,
+        checkout_lng FLOAT,
+        checkout_photo_url TEXT,
+        checkout_note VARCHAR(280),
+        checkout_face_score FLOAT,
+        checkout_mood VARCHAR(50),
+        checkout_mood_note TEXT,
+        duration_hours FLOAT DEFAULT 0.0,
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+""")
+print("  ✓ Checked/Created table attendance_intervals")
 
 cur.close()
 conn.close()
 print("\nMigration complete.\n")
+
