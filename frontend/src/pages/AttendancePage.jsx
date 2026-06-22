@@ -106,6 +106,7 @@ function AttendancePage() {
 
   // Override Modal State
   const [selectedRecord, setSelectedRecord] = useState(null)
+  const [selectedDetailRecord, setSelectedDetailRecord] = useState(null)
   const [overrideData, setOverrideData] = useState({ day_status: "present", admin_note: "" })
   const [manualCheckoutTime, setManualCheckoutTime] = useState("18:00")
   const [submitting, setSubmitting] = useState(false)
@@ -224,40 +225,12 @@ function AttendancePage() {
                     <td className="p-4">
                       <div className="text-sm font-medium text-gray-900">{formatTimeOnly(record.checkin_time)}</div>
                       <div className="text-[10px] text-gray-400 font-semibold uppercase">{record.checkin_status}</div>
-                      {record.checkin_mood && (
-                        <div className="mt-1 flex items-center gap-1 text-[11px]" title={record.checkin_mood_note || `Feeling ${record.checkin_mood}`}>
-                          <span>{getMoodEmoji(record.checkin_mood)}</span>
-                          <span className="font-bold text-gray-600 capitalize">{record.checkin_mood}</span>
-                        </div>
-                      )}
-                      {record.checkin_note && (
-                        <div 
-                          className="mt-1 max-w-[180px] truncate text-[11px] italic text-gray-500 hover:text-gray-700 cursor-help"
-                          title={record.checkin_note}
-                        >
-                          &ldquo;{record.checkin_note}&rdquo;
-                        </div>
-                      )}
                     </td>
                     <td className="p-4">
                       <div className="text-sm font-medium text-gray-900">{formatTimeOnly(record.checkout_time)}</div>
                       <div className="text-[10px] text-gray-400 font-semibold uppercase">
                         {record.checkout_status} {record.total_hours > 0 && `• ${formatHours(record.total_hours)}`}
                       </div>
-                      {record.checkout_mood && (
-                        <div className="mt-1 flex items-center gap-1 text-[11px]" title={record.checkout_mood_note || `Feeling ${record.checkout_mood}`}>
-                          <span>{getMoodEmoji(record.checkout_mood)}</span>
-                          <span className="font-bold text-gray-600 capitalize">{record.checkout_mood}</span>
-                        </div>
-                      )}
-                      {record.checkout_note && (
-                        <div 
-                          className="mt-1 max-w-[180px] truncate text-[11px] italic text-gray-500 hover:text-gray-700 cursor-help"
-                          title={record.checkout_note}
-                        >
-                          &ldquo;{record.checkout_note}&rdquo;
-                        </div>
-                      )}
                     </td>
                     <td className="p-4 text-center">
                       <StatusBadge value={record.day_status} />
@@ -319,12 +292,20 @@ function AttendancePage() {
                       ) : "-"}
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => handleOverrideClick(record)}
-                        className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-200 transition"
-                      >
-                        Override
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setSelectedDetailRecord(record)}
+                          className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleOverrideClick(record)}
+                          className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-200 transition"
+                        >
+                          Override
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -402,6 +383,177 @@ function AttendancePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Details View Modal */}
+      {selectedDetailRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-xl font-bold text-gray-950">Attendance Details</h3>
+                <p className="text-sm text-gray-500">
+                  {selectedDetailRecord.employee_name} ({selectedDetailRecord.employee_id})
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedDetailRecord(null)}
+                className="rounded-full p-1.5 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Check-In Details Card */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-4">
+                <div className="flex items-center gap-2 border-b border-gray-150 pb-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-100 text-[10px] font-bold text-emerald-700">IN</span>
+                  <h4 className="font-bold text-gray-950 text-sm">Check-In</h4>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <span className="block text-gray-450 font-medium">Time</span>
+                    <span className="font-bold text-gray-800 text-sm">
+                      {formatTimeOnly(selectedDetailRecord.checkin_time)}
+                    </span>
+                    <span className={`ml-2 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${getStatusClass(selectedDetailRecord.checkin_status)}`}>
+                      {selectedDetailRecord.checkin_status}
+                    </span>
+                  </div>
+
+                  {selectedDetailRecord.checkin_mood && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">User Mood</span>
+                      <div className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1">
+                        <span className="text-base">{getMoodEmoji(selectedDetailRecord.checkin_mood)}</span>
+                        <span className="font-bold text-gray-700 capitalize">{selectedDetailRecord.checkin_mood}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkin_mood_note && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">Mood Note</span>
+                      <p className="mt-0.5 text-gray-700 bg-white border border-gray-100 rounded-lg p-2 italic leading-relaxed">
+                        &ldquo;{selectedDetailRecord.checkin_mood_note}&rdquo;
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkin_note && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">Activity Note</span>
+                      <p className="mt-0.5 text-gray-700 bg-white border border-gray-100 rounded-lg p-2 italic leading-relaxed">
+                        &ldquo;{selectedDetailRecord.checkin_note}&rdquo;
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkin_photo_url && (
+                    <div>
+                      <span className="block text-gray-450 font-medium mb-1">Selfie</span>
+                      <div className="h-28 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                        <img
+                          src={`/attendance/photo?path=${encodeURIComponent(selectedDetailRecord.checkin_photo_url)}`}
+                          alt="Check-in verification"
+                          className="h-full w-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Check-Out Details Card */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-4">
+                <div className="flex items-center gap-2 border-b border-gray-150 pb-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-gray-900 text-[10px] font-bold text-white">OUT</span>
+                  <h4 className="font-bold text-gray-950 text-sm">Check-Out</h4>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <span className="block text-gray-450 font-medium">Time</span>
+                    <span className="font-bold text-gray-800 text-sm">
+                      {formatTimeOnly(selectedDetailRecord.checkout_time)}
+                    </span>
+                    {selectedDetailRecord.checkout_status && (
+                      <span className={`ml-2 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${getStatusClass(selectedDetailRecord.checkout_status)}`}>
+                        {selectedDetailRecord.checkout_status}
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedDetailRecord.total_hours > 0 && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">Worked Hours</span>
+                      <span className="font-bold text-gray-800">
+                        {formatHours(selectedDetailRecord.total_hours)}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkout_mood && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">User Mood</span>
+                      <div className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1">
+                        <span className="text-base">{getMoodEmoji(selectedDetailRecord.checkout_mood)}</span>
+                        <span className="font-bold text-gray-700 capitalize">{selectedDetailRecord.checkout_mood}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkout_mood_note && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">Mood Note</span>
+                      <p className="mt-0.5 text-gray-700 bg-white border border-gray-100 rounded-lg p-2 italic leading-relaxed">
+                        &ldquo;{selectedDetailRecord.checkout_mood_note}&rdquo;
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkout_note && (
+                    <div>
+                      <span className="block text-gray-450 font-medium">Activity Note</span>
+                      <p className="mt-0.5 text-gray-700 bg-white border border-gray-100 rounded-lg p-2 italic leading-relaxed">
+                        &ldquo;{selectedDetailRecord.checkout_note}&rdquo;
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedDetailRecord.checkout_photo_url && (
+                    <div>
+                      <span className="block text-gray-450 font-medium mb-1">Selfie</span>
+                      <div className="h-28 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                        <img
+                          src={`/attendance/photo?path=${encodeURIComponent(selectedDetailRecord.checkout_photo_url)}`}
+                          alt="Check-out verification"
+                          className="h-full w-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedDetailRecord(null)}
+                className="w-full rounded-xl bg-gray-950 py-3 text-sm font-bold text-white hover:bg-gray-800 transition"
+              >
+                Close Details
+              </button>
+            </div>
           </div>
         </div>
       )}
