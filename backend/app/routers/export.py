@@ -326,6 +326,7 @@ def export_attendance_excel(
             total_hours_worked = sum(log.total_hours or 0.0 for log in logs)
             present_target_hours = worked_days * 9.0
             total_target_hours = expected_working_days * 9.0
+            total_days_present = sum(1 for log in logs if log.checkin_time is not None and log.day_status != "absent")
 
             summary_rows.append({
                 "Employee ID": emp.employee_id,
@@ -334,6 +335,7 @@ def export_attendance_excel(
                 "Saturday Policy": user_policy.replace("_", " ").title(),
                 "Expected Working Days Count": expected_working_days,
                 "Total Target Hours (Expected Working Days x 9)": total_target_hours,
+                "Total No of Days Present": total_days_present,
                 "Present Days Count": worked_days,
                 "Present Target Hours (Present Days x 9)": present_target_hours,
                 "Actual Hours Worked": round(total_hours_worked, 2),
@@ -351,7 +353,7 @@ def export_attendance_excel(
             df_summary = pd.DataFrame(columns=[
                 "Employee ID", "Employee Name", "Email", "Saturday Policy",
                 "Expected Working Days Count", "Total Target Hours (Expected Working Days x 9)",
-                "Present Days Count", "Present Target Hours (Present Days x 9)",
+                "Total No of Days Present", "Present Days Count", "Present Target Hours (Present Days x 9)",
                 "Actual Hours Worked", "Paid Leaves", "Extra Days Worked (Holiday/Weekend)",
                 "Net Paid Days (30-day billing)", "Base Monthly Salary", "Calculated Net Salary (99%)"
             ])

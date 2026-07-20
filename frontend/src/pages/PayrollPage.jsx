@@ -274,6 +274,7 @@ export default function PayrollPage() {
                   <tr>
                     <th className="px-6 py-4">Employee Details</th>
                     <th className="px-6 py-4">Base Monthly Salary</th>
+                    <th className="px-6 py-4 text-center">Days Present</th>
                     <th className="px-6 py-4 text-center">Worked Days (Status)</th>
                     <th className="px-6 py-4 text-center">Total Hours</th>
                     <th className="px-6 py-4 text-center">Paid Leaves</th>
@@ -304,6 +305,10 @@ export default function PayrollPage() {
                               Edit Salary
                             </button>
                           </div>
+                        </td>
+
+                        <td className="px-6 py-4 text-center font-bold text-gray-900 bg-gray-50/10">
+                          {rec.total_days_present || 0} <span className="text-xs font-normal text-gray-400">days</span>
                         </td>
 
                         <td className="px-6 py-4 text-center font-bold text-gray-900">

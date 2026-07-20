@@ -166,6 +166,11 @@ export default function EmployeePayrollSlip() {
               </div>
 
               <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
+                <span className="text-xs font-bold text-gray-400 uppercase">Days Present Count</span>
+                <span className="text-sm font-black text-gray-900">{slip.total_days_present || 0} days</span>
+              </div>
+
+              <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
                 <span className="text-xs font-bold text-gray-400 uppercase">Worked Days Count</span>
                 <span className="text-sm font-black text-gray-900">{slip.worked_days} days</span>
               </div>

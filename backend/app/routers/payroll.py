@@ -189,6 +189,7 @@ def get_payroll_summary(
             calculated_salary = ((base_salary / 30.0) * total_paid_days) * 0.99 # 1% TDS deduction
 
         total_hours_worked = sum(log.total_hours or 0.0 for log in logs)
+        total_days_present = sum(1 for log in logs if log.checkin_time is not None and log.day_status != "absent")
 
         payroll_records.append({
             "user_id": str(emp.id),
@@ -198,6 +199,7 @@ def get_payroll_summary(
             "base_salary": base_salary,
             "total_working_days": 30, # fixed 30 days
             "worked_days": worked_days,
+            "total_days_present": total_days_present,
             "total_hours_worked": round(total_hours_worked, 2),
             "paid_leaves": paid_leaves,
             "extra_days_worked": extra_days_worked,
@@ -376,6 +378,7 @@ def get_my_pay_slip(
         calculated_salary = ((base_salary / 30.0) * total_paid_days) * 0.99 # 1% TDS deduction
 
     total_hours_worked = sum(log.total_hours or 0.0 for log in logs)
+    total_days_present = sum(1 for log in logs if log.checkin_time is not None and log.day_status != "absent")
 
     return {
         "year": q_year,
@@ -383,6 +386,7 @@ def get_my_pay_slip(
         "base_salary": base_salary,
         "total_working_days": 30, # fixed 30 days
         "worked_days": worked_days,
+        "total_days_present": total_days_present,
         "total_hours_worked": round(total_hours_worked, 2),
         "paid_leaves": paid_leaves,
         "extra_days_worked": extra_days_worked,
