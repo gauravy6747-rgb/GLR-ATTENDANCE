@@ -22,6 +22,7 @@ class CheckOutRequest(BaseModel):
 class OverrideRequest(BaseModel):
     day_status: str
     admin_note: Optional[str] = None
+    checkin_time: Optional[datetime] = None
     checkout_time: Optional[datetime] = None
 
 

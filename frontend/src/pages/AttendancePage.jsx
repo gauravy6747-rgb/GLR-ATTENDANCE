@@ -108,6 +108,7 @@ function AttendancePage() {
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [selectedDetailRecord, setSelectedDetailRecord] = useState(null)
   const [overrideData, setOverrideData] = useState({ day_status: "present", admin_note: "" })
+  const [manualCheckinTime, setManualCheckinTime] = useState("09:00")
   const [manualCheckoutTime, setManualCheckoutTime] = useState("18:00")
   const [submitting, setSubmitting] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
@@ -128,9 +129,17 @@ function AttendancePage() {
     setSelectedRecord(record)
     setOverrideData({ day_status: record.day_status || "present", admin_note: "" })
     
+    const pad = (n) => String(n).padStart(2, "0")
+    
+    if (record.checkin_time) {
+      const date = new Date(record.checkin_time)
+      setManualCheckinTime(`${pad(date.getHours())}:${pad(date.getMinutes())}`)
+    } else {
+      setManualCheckinTime("09:00")
+    }
+    
     if (record.checkout_time) {
       const date = new Date(record.checkout_time)
-      const pad = (n) => String(n).padStart(2, "0")
       setManualCheckoutTime(`${pad(date.getHours())}:${pad(date.getMinutes())}`)
     } else {
       setManualCheckoutTime("18:00")
@@ -144,12 +153,19 @@ function AttendancePage() {
     try {
       const payload = { ...overrideData }
       if (overrideData.day_status !== "absent") {
+        if (overrideData.day_status === "present" && !manualCheckinTime) {
+          payload.checkin_time = null
+        } else {
+          payload.checkin_time = `${selectedRecord.date}T${manualCheckinTime}:00`
+        }
+
         if (overrideData.day_status === "present" && !manualCheckoutTime) {
           payload.checkout_time = null
         } else {
           payload.checkout_time = `${selectedRecord.date}T${manualCheckoutTime}:00`
         }
       } else {
+        payload.checkin_time = null
         payload.checkout_time = null
       }
       await overrideAttendance(selectedRecord.id, payload)
@@ -345,17 +361,31 @@ function AttendancePage() {
               </div>
 
               {overrideData.day_status !== "absent" && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Check-Out Time {overrideData.day_status === "present" ? "(Optional)" : "(Required)"}
-                  </label>
-                  <input
-                    type="time"
-                    required={overrideData.day_status !== "present"}
-                    value={manualCheckoutTime}
-                    onChange={(e) => setManualCheckoutTime(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition font-semibold"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Check-In Time {overrideData.day_status === "present" ? "(Optional)" : "(Required)"}
+                    </label>
+                    <input
+                      type="time"
+                      required={overrideData.day_status !== "present"}
+                      value={manualCheckinTime}
+                      onChange={(e) => setManualCheckinTime(e.target.value)}
+                      className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Check-Out Time {overrideData.day_status === "present" ? "(Optional)" : "(Required)"}
+                    </label>
+                    <input
+                      type="time"
+                      required={overrideData.day_status !== "present"}
+                      value={manualCheckoutTime}
+                      onChange={(e) => setManualCheckoutTime(e.target.value)}
+                      className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition font-semibold"
+                    />
+                  </div>
                 </div>
               )}
 

@@ -641,11 +641,34 @@ def override_attendance(
     is_special_day = not is_expected_work
     expected_full_hours = 6.5 if (today_date.weekday() == 5 and target_policy == "all_sat_half_day") else 8.5
 
-    if data.checkout_time:
+    if data.day_status == "absent":
+        attendance.checkin_time = None
+        attendance.checkout_time = None
+        attendance.total_hours = 0.0
+        attendance.checkin_status = None
+        attendance.checkout_status = None
+        attendance.day_status = "absent"
+    else:
+        # Update checkin_time
+        if data.checkin_time:
+            attendance.checkin_time = data.checkin_time
+
+        # Update checkout_time
         attendance.checkout_time = data.checkout_time
+        
         if attendance.checkin_time:
-            # Defensively strip tzinfo from both sides before subtracting
-            checkout_naive = data.checkout_time.replace(tzinfo=None)
+            checkin_hour = attendance.checkin_time.hour
+            if checkin_hour < 7:
+                attendance.checkin_status = "early_bird"
+            elif checkin_hour < 11:
+                attendance.checkin_status = "on_time"
+            else:
+                attendance.checkin_status = "late"
+        else:
+            attendance.checkin_status = None
+
+        if attendance.checkin_time and attendance.checkout_time:
+            checkout_naive = attendance.checkout_time.replace(tzinfo=None)
             checkin_naive = attendance.checkin_time.replace(tzinfo=None)
             total_seconds = (checkout_naive - checkin_naive).total_seconds()
             total_hours = round(total_seconds / 3600, 2)
@@ -669,9 +692,9 @@ def override_attendance(
             else:
                 attendance.day_status = data.day_status
         else:
+            attendance.total_hours = 0.0
+            attendance.checkout_status = None
             attendance.day_status = data.day_status
-    else:
-        attendance.day_status = data.day_status
 
     # --- Sync Comp-Off Transactions and Balances ---
     # Query existing transaction
@@ -711,7 +734,6 @@ def override_attendance(
                 )
                 db.add(txn)
         else:
-            # if amount_earned is 0.0, remove transaction if it existed
             if txn:
                 db.delete(txn)
     else:
@@ -722,10 +744,10 @@ def override_attendance(
                 balance.days_earned = float(balance.days_earned or 0.0) - float(txn.amount)
             db.delete(txn)
 
-    attendance.is_manual_override = True
-    attendance.override_by = current_user.id
-    attendance.override_at = now_ist()
-    attendance.override_note = data.admin_note or "Manual override by administrator"
+    attendance.is_manual_override = False
+    attendance.override_by = None
+    attendance.override_at = None
+    attendance.override_note = None
 
     db.commit()
     db.refresh(attendance)
