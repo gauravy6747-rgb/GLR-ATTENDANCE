@@ -306,6 +306,7 @@ def get_employee_stats(
         "employee_id": user.employee_id,
         "query_year": q_year,
         "query_month": q_month,
+        "saturday_policy": user.saturday_policy,
         "records": calendar_records,
         "yearly_stats": {
             "total_hours": round(yearly_hours, 2),

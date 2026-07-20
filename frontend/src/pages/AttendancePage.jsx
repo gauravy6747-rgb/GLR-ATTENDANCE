@@ -143,8 +143,12 @@ function AttendancePage() {
     setSubmitting(true)
     try {
       const payload = { ...overrideData }
-      if (overrideData.day_status !== "present") {
-        payload.checkout_time = `${selectedRecord.date}T${manualCheckoutTime}:00`
+      if (overrideData.day_status !== "absent") {
+        if (overrideData.day_status === "present" && !manualCheckoutTime) {
+          payload.checkout_time = null
+        } else {
+          payload.checkout_time = `${selectedRecord.date}T${manualCheckoutTime}:00`
+        }
       } else {
         payload.checkout_time = null
       }
@@ -340,14 +344,14 @@ function AttendancePage() {
                 </select>
               </div>
 
-              {overrideData.day_status !== "present" && (
+              {overrideData.day_status !== "absent" && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Check-Out Time (Required)
+                    Check-Out Time {overrideData.day_status === "present" ? "(Optional)" : "(Required)"}
                   </label>
                   <input
                     type="time"
-                    required
+                    required={overrideData.day_status !== "present"}
                     value={manualCheckoutTime}
                     onChange={(e) => setManualCheckoutTime(e.target.value)}
                     className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition font-semibold"

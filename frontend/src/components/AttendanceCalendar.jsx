@@ -9,7 +9,7 @@ const statusColors = {
   comp_off_leave: "bg-indigo-500 text-white",
 }
 
-export default function AttendanceCalendar({ records, holidays, currentDate, selectedDate = null, onSelectDate = null }) {
+export default function AttendanceCalendar({ records, holidays, currentDate, selectedDate = null, onSelectDate = null, saturdayPolicy = "alt_sat_holiday" }) {
   const daysInMonth = useMemo(() => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -71,11 +71,31 @@ export default function AttendanceCalendar({ records, holidays, currentDate, sel
     const isToday = dateStr === today
     const isSelected = dateStr === selectedDate
     
-    // Check if this calendar day is a Sunday (getDay === 0)
-    const isSunday = new Date(daysInMonth.year, daysInMonth.month, d).getDay() === 0
+    // Check day of week using local Date constructor
+    const dateObj = new Date(daysInMonth.year, daysInMonth.month, d)
+    const dayOfWeek = dateObj.getDay() // 0 = Sunday, 6 = Saturday
+    const isSunday = dayOfWeek === 0
+    const isSaturday = dayOfWeek === 6
+    
+    let isSatHoliday = false
+    if (isSaturday) {
+      const satIdx = Math.floor((d - 1) / 7) + 1
+      if (saturdayPolicy === "all_sat_holiday") {
+        isSatHoliday = true
+      } else if (saturdayPolicy === "alt_sat_holiday" || saturdayPolicy === "alt_sat_holiday_rest_wfh") {
+        if (satIdx === 2 || satIdx === 4) {
+          isSatHoliday = true
+        }
+      }
+    }
+    
     let dayInfo = info
-    if (!dayInfo && isSunday) {
-      dayInfo = { type: "holiday", label: "Sunday" }
+    if (!dayInfo) {
+      if (isSunday) {
+        dayInfo = { type: "holiday", label: "Sunday" }
+      } else if (isSatHoliday) {
+        dayInfo = { type: "holiday", label: "Saturday Off" }
+      }
     }
     
     let cellStyle = ""

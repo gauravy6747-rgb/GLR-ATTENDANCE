@@ -33,6 +33,15 @@ const getISTComponents = () => {
   };
 };
 
+function formatHours(value) {
+  const totalHours = Number(value ?? 0)
+  const hrs = Math.floor(totalHours)
+  const mins = Math.round((totalHours - hrs) * 60)
+  const finalMins = mins === 60 ? 0 : mins
+  const finalHrs = mins === 60 ? hrs + 1 : hrs
+  return `${finalHrs}h ${finalMins}m`
+}
+
 export default function PayrollPage() {
   const ist = getISTComponents()
   
@@ -266,6 +275,7 @@ export default function PayrollPage() {
                     <th className="px-6 py-4">Employee Details</th>
                     <th className="px-6 py-4">Base Monthly Salary</th>
                     <th className="px-6 py-4 text-center">Worked Days (Status)</th>
+                    <th className="px-6 py-4 text-center">Total Hours</th>
                     <th className="px-6 py-4 text-center">Paid Leaves</th>
                     <th className="px-6 py-4 text-center">Total Paid Days</th>
                     <th className="px-6 py-4 text-right">Calculated Salary</th>
@@ -298,6 +308,10 @@ export default function PayrollPage() {
 
                         <td className="px-6 py-4 text-center font-bold text-gray-900">
                           {rec.worked_days} <span className="text-xs font-normal text-gray-400">days</span>
+                        </td>
+
+                        <td className="px-6 py-4 text-center font-bold text-emerald-700 bg-emerald-50/10">
+                          {formatHours(rec.total_hours_worked || 0)}
                         </td>
 
                         <td className="px-6 py-4 text-center font-semibold text-indigo-700 bg-indigo-50/20">

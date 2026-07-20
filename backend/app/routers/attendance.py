@@ -615,6 +615,32 @@ def override_attendance(
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance record not found")
 
+    # Fetch target user's saturday policy
+    target_user = db.query(User).filter(User.id == attendance.user_id).first()
+    target_policy = target_user.saturday_policy if target_user else "alt_sat_holiday"
+    today_date = attendance.date
+
+    # Determine if it's a holiday / weekend for Saturday policy
+    from app.models.holiday import Holiday
+    from app.models.working_days import WorkingDaysConfig
+    holiday = db.query(Holiday).filter(Holiday.date == today_date).first()
+    working_days = db.query(WorkingDaysConfig).first()
+    days_map = [True, True, True, True, True, True, False]
+    if working_days:
+        days_map = [
+            working_days.monday, working_days.tuesday, working_days.wednesday,
+            working_days.thursday, working_days.friday, working_days.saturday,
+            working_days.sunday
+        ]
+    is_expected_work = is_user_expected_working_day(
+        today_date,
+        target_policy,
+        {holiday.date} if holiday else set(),
+        days_map
+    )
+    is_special_day = not is_expected_work
+    expected_full_hours = 6.5 if (today_date.weekday() == 5 and target_policy == "all_sat_half_day") else 8.5
+
     if data.checkout_time:
         attendance.checkout_time = data.checkout_time
         if attendance.checkin_time:
@@ -624,42 +650,16 @@ def override_attendance(
             total_seconds = (checkout_naive - checkin_naive).total_seconds()
             total_hours = round(total_seconds / 3600, 2)
             attendance.total_hours = total_hours
-            if total_hours >= 8.5:
+            
+            if total_hours >= expected_full_hours:
                 attendance.checkout_status = "on_time_out"
             else:
                 attendance.checkout_status = "early_leave"
                 
             if data.day_status == "present":
-                from app.models.holiday import Holiday
-                from app.models.working_days import WorkingDaysConfig
-                
-                today_date = attendance.date
-                holiday = db.query(Holiday).filter(Holiday.date == today_date).first()
-                working_days = db.query(WorkingDaysConfig).first()
-                days_map = [True, True, True, True, True, True, False]
-                if working_days:
-                    days_map = [
-                        working_days.monday, working_days.tuesday, working_days.wednesday,
-                        working_days.thursday, working_days.friday, working_days.saturday,
-                        working_days.sunday
-                    ]
-                
-                # Fetch target user's saturday policy
-                target_user = db.query(User).filter(User.id == attendance.user_id).first()
-                target_policy = target_user.saturday_policy if target_user else "alt_sat_holiday"
-
-                is_expected_work = is_user_expected_working_day(
-                    today_date,
-                    target_policy,
-                    {holiday.date} if holiday else set(),
-                    days_map
-                )
-                is_special_day = not is_expected_work
-                
                 if is_special_day:
                     attendance.day_status = "holiday_work"
                 else:
-                    expected_full_hours = 6.5 if (today_date.weekday() == 5 and target_policy == "all_sat_half_day") else 8.5
                     if total_hours >= expected_full_hours:
                         attendance.day_status = "full_day"
                     elif total_hours >= 4.5:
@@ -672,6 +672,55 @@ def override_attendance(
             attendance.day_status = data.day_status
     else:
         attendance.day_status = data.day_status
+
+    # --- Sync Comp-Off Transactions and Balances ---
+    # Query existing transaction
+    txn = db.query(CompOffTransaction).filter(
+        CompOffTransaction.user_id == attendance.user_id,
+        CompOffTransaction.reference_date == today_date,
+        CompOffTransaction.type == "earned"
+    ).first()
+
+    if attendance.day_status == "holiday_work" and attendance.checkin_time:
+        # User is eligible for comp-off
+        amount_earned = 1.0 if attendance.total_hours >= expected_full_hours else (0.5 if attendance.total_hours >= 4.5 else 0.0)
+        
+        balance = db.query(CompOffBalance).filter(CompOffBalance.user_id == attendance.user_id).first()
+        if not balance:
+            balance = CompOffBalance(user_id=attendance.user_id)
+            db.add(balance)
+            db.flush()
+
+        old_amount = txn.amount if txn else 0.0
+        diff = amount_earned - old_amount
+        balance.days_earned = float(balance.days_earned or 0.0) + diff
+
+        if amount_earned > 0.0:
+            if txn:
+                txn.amount = amount_earned
+                txn.notes = f"Manual override: Worked {'full' if attendance.total_hours >= expected_full_hours else 'half'} day ({attendance.total_hours} hrs) on holiday/weekend"
+                txn.approved_by = current_user.id
+            else:
+                txn = CompOffTransaction(
+                    user_id=attendance.user_id,
+                    type="earned",
+                    amount=amount_earned,
+                    reference_date=today_date,
+                    notes=f"Manual override: Worked {'full' if attendance.total_hours >= expected_full_hours else 'half'} day ({attendance.total_hours} hrs) on holiday/weekend",
+                    approved_by=current_user.id
+                )
+                db.add(txn)
+        else:
+            # if amount_earned is 0.0, remove transaction if it existed
+            if txn:
+                db.delete(txn)
+    else:
+        # If not holiday work (or checkin is missing), delete any earned comp-off txn for this date
+        if txn:
+            balance = db.query(CompOffBalance).filter(CompOffBalance.user_id == attendance.user_id).first()
+            if balance:
+                balance.days_earned = float(balance.days_earned or 0.0) - float(txn.amount)
+            db.delete(txn)
 
     attendance.is_manual_override = True
     attendance.override_by = current_user.id

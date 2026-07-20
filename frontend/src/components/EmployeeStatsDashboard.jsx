@@ -327,6 +327,7 @@ export default function EmployeeStatsDashboard({ user_id = null, initialDate = n
                     onSelectDate={(dateStr) => {
                       setSelectedDate(dateStr)
                     }}
+                    saturdayPolicy={stats.saturday_policy}
                   />
                 </div>
               </div>

@@ -32,6 +32,15 @@ const getISTComponents = () => {
   };
 };
 
+function formatHours(value) {
+  const totalHours = Number(value ?? 0)
+  const hrs = Math.floor(totalHours)
+  const mins = Math.round((totalHours - hrs) * 60)
+  const finalMins = mins === 60 ? 0 : mins
+  const finalHrs = mins === 60 ? hrs + 1 : hrs
+  return `${finalHrs} hrs ${finalMins} mins`
+}
+
 export default function EmployeePayrollSlip() {
   const ist = getISTComponents()
   
@@ -159,6 +168,11 @@ export default function EmployeePayrollSlip() {
               <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
                 <span className="text-xs font-bold text-gray-400 uppercase">Worked Days Count</span>
                 <span className="text-sm font-black text-gray-900">{slip.worked_days} days</span>
+              </div>
+
+              <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">
+                <span className="text-xs font-bold text-gray-400 uppercase">Total Hours Worked</span>
+                <span className="text-sm font-black text-emerald-700">{formatHours(slip.total_hours_worked || 0)}</span>
               </div>
 
               <div className="flex justify-between items-center rounded-xl bg-gray-50 px-4 py-3 border border-gray-100">

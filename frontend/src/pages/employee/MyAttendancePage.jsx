@@ -191,6 +191,7 @@ export default function MyAttendancePage() {
               setSelectedStatsDate(dateStr)
               setView("stats")
             }}
+            saturdayPolicy={saturdayPolicy}
           />
         )}
 
