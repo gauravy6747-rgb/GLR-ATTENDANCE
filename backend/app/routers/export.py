@@ -194,6 +194,7 @@ def export_attendance_excel(
         target_hours = 0.0
         full_days_count = 0
         half_days_count = 0
+        overtime_hours = 0.0
         user_policy = emp.saturday_policy or "alt_sat_holiday"
 
         for d in date_list:
@@ -204,10 +205,8 @@ def export_attendance_excel(
 
             if is_expected_work:
                 expected_working_days += 1.0
-                if d.weekday() == 5 and user_policy == "all_sat_half_day":
-                    target_hours += 7.0
-                else:
-                    target_hours += 9.0
+                target = 7.0 if (d.weekday() == 5 and user_policy == "all_sat_half_day") else 9.0
+                target_hours += target
 
                 if log:
                     if log.day_status in ["full_day", "holiday_work"]:
@@ -219,6 +218,10 @@ def export_attendance_excel(
                         half_days_count += 1
                     elif log.day_status == "absent":
                         total_deductions += 1.0
+
+                    # Overtime hours calculation on expected working days
+                    if log.total_hours is not None:
+                        overtime_hours += max(0.0, log.total_hours - target)
                 else:
                     if d <= today:
                         total_deductions += 1.0
@@ -239,7 +242,8 @@ def export_attendance_excel(
         q_month = month or today.month
         base_salary = get_employee_monthly_salary(db, emp.id, q_year, q_month, emp.base_salary)
 
-        total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked)
+        overtime_days = overtime_hours / 9.0
+        total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked + overtime_days)
         calculated_salary = 0.0
         if base_salary > 0:
             calculated_salary = ((base_salary / 30.0) * total_paid_days) * 0.99

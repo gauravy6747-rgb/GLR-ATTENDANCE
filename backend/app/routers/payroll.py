@@ -138,6 +138,7 @@ def get_payroll_summary(
         worked_days = 0.0
         paid_leaves = 0.0
         extra_days_worked = 0.0
+        overtime_hours = 0.0
 
         user_policy = emp.saturday_policy or "alt_sat_holiday"
 
@@ -164,6 +165,11 @@ def get_payroll_summary(
                         paid_leaves += 1.0
                     elif log.day_status == "absent":
                         total_deductions += 1.0
+
+                    # Overtime hours calculation on expected working days
+                    if log.total_hours is not None:
+                        target = 7.0 if (d.weekday() == 5 and user_policy == "all_sat_half_day") else 9.0
+                        overtime_hours += max(0.0, log.total_hours - target)
                 else:
                     # No log on an expected working day is considered absent (only for past or current days)
                     if d <= current_date_ist:
@@ -180,8 +186,9 @@ def get_payroll_summary(
                     elif log.day_status == "comp_off_leave":
                         paid_leaves += 1.0
 
-        # Fixed 30 days billing: paid days is 30 - deductions + extra days worked
-        total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked)
+        # Fixed 30 days billing: paid days is 30 - deductions + extra days worked + overtime days (9 hours = 1 day)
+        overtime_days = overtime_hours / 9.0
+        total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked + overtime_days)
         base_salary = get_employee_monthly_salary(db, emp.id, q_year, q_month, emp.base_salary)
 
         calculated_salary = 0.0
@@ -327,6 +334,7 @@ def get_my_pay_slip(
     worked_days = 0.0
     paid_leaves = 0.0
     extra_days_worked = 0.0
+    overtime_hours = 0.0
 
     user_policy = current_user.saturday_policy or "alt_sat_holiday"
 
@@ -353,6 +361,11 @@ def get_my_pay_slip(
                     paid_leaves += 1.0
                 elif log.day_status == "absent":
                     total_deductions += 1.0
+
+                # Overtime hours calculation on expected working days
+                if log.total_hours is not None:
+                    target = 7.0 if (d.weekday() == 5 and user_policy == "all_sat_half_day") else 9.0
+                    overtime_hours += max(0.0, log.total_hours - target)
             else:
                 # No log on an expected working day is considered absent (only for past or current days)
                 if d <= current_date_ist:
@@ -369,8 +382,9 @@ def get_my_pay_slip(
                 elif log.day_status == "comp_off_leave":
                     paid_leaves += 1.0
 
-    # Fixed 30 days billing: paid days is 30 - deductions + extra days worked
-    total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked)
+    # Fixed 30 days billing: paid days is 30 - deductions + extra days worked + overtime days (9 hours = 1 day)
+    overtime_days = overtime_hours / 9.0
+    total_paid_days = max(0.0, 30.0 - total_deductions + extra_days_worked + overtime_days)
     base_salary = get_employee_monthly_salary(db, current_user.id, q_year, q_month, current_user.base_salary)
 
     calculated_salary = 0.0
