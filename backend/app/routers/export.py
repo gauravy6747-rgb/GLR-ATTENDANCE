@@ -75,7 +75,7 @@ def style_worksheet(ws):
             # Alignments based on headers
             if any(term in header_val for term in ["date", "id", "time", "status", "policy"]):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
-            elif any(term in header_val for term in ["days", "hours", "count", "holidays"]):
+            elif any(term in header_val for term in ["days", "hours", "count", "holidays", "present", "full", "half", "absent"]):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.number_format = "0.0"
             elif "salary" in header_val or "payout" in header_val:
@@ -191,6 +191,9 @@ def export_attendance_excel(
         extra_days_worked = 0.0
         total_deductions = 0.0
         holidays_count = 0
+        target_hours = 0.0
+        full_days_count = 0
+        half_days_count = 0
         user_policy = emp.saturday_policy or "alt_sat_holiday"
 
         for d in date_list:
@@ -201,12 +204,19 @@ def export_attendance_excel(
 
             if is_expected_work:
                 expected_working_days += 1.0
+                if d.weekday() == 5 and user_policy == "all_sat_half_day":
+                    target_hours += 7.0
+                else:
+                    target_hours += 9.0
+
                 if log:
                     if log.day_status in ["full_day", "holiday_work"]:
                         worked_days += 1.0
+                        full_days_count += 1
                     elif log.day_status == "half_day":
                         worked_days += 0.5
                         total_deductions += 0.5
+                        half_days_count += 1
                     elif log.day_status == "absent":
                         total_deductions += 1.0
                 else:
@@ -218,9 +228,11 @@ def export_attendance_excel(
                     if log.day_status in ["full_day", "holiday_work"]:
                         worked_days += 1.0
                         extra_days_worked += 1.0
+                        full_days_count += 1
                     elif log.day_status == "half_day":
                         worked_days += 0.5
                         extra_days_worked += 0.5
+                        half_days_count += 1
 
         # Calculate base monthly salary
         q_year = year or today.year
@@ -236,10 +248,14 @@ def export_attendance_excel(
 
         summary_rows.append({
             "name": emp.name,
-            "total no. of days worked": worked_days,
+            "total no of days": expected_working_days,
+            "total target hours": target_hours,
+            "no of days present": full_days_count + half_days_count,
+            "no of days full day": full_days_count,
+            "half day": half_days_count,
+            "absent": total_deductions,
+            "no. holidays in month": holidays_count,
             "total hours worked": round(total_hours_worked, 2),
-            "no of holidays": holidays_count,
-            "no. of days absent": total_deductions,
             "total salary calculated": round(calculated_salary, 2)
         })
 
@@ -247,10 +263,14 @@ def export_attendance_excel(
     if df.empty:
         df = pd.DataFrame(columns=[
             "name",
-            "total no. of days worked",
+            "total no of days",
+            "total target hours",
+            "no of days present",
+            "no of days full day",
+            "half day",
+            "absent",
+            "no. holidays in month",
             "total hours worked",
-            "no of holidays",
-            "no. of days absent",
             "total salary calculated"
         ])
 
