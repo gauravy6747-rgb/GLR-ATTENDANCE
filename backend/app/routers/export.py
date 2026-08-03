@@ -194,6 +194,7 @@ def export_attendance_excel(
         target_hours = 0.0
         full_days_count = 0
         half_days_count = 0
+        absent_days = 0.0
         overtime_hours = 0.0
         user_policy = emp.saturday_policy or "alt_sat_holiday"
 
@@ -218,6 +219,7 @@ def export_attendance_excel(
                         half_days_count += 1
                     elif log.day_status == "absent":
                         total_deductions += 1.0
+                        absent_days += 1.0
 
                     # Overtime hours calculation on expected working days
                     if log.total_hours is not None:
@@ -225,6 +227,7 @@ def export_attendance_excel(
                 else:
                     if d <= today:
                         total_deductions += 1.0
+                        absent_days += 1.0
             else:
                 holidays_count += 1
                 if log:
@@ -257,7 +260,7 @@ def export_attendance_excel(
             "no of days present": full_days_count + half_days_count,
             "no of days full day": full_days_count,
             "half day": half_days_count,
-            "absent": total_deductions,
+            "absent": absent_days,
             "no. holidays in month": holidays_count,
             "total hours worked": round(total_hours_worked, 2),
             "total salary calculated": round(calculated_salary, 2)
