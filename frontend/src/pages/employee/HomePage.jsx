@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import EmployeeLayout from "../../layouts/EmployeeLayout"
-import { getTodayAttendance, checkin, checkout } from "../../services/attendanceService"
+import { getTodayAttendance, getMyHistory, checkin, checkout } from "../../services/attendanceService"
 import { submitMispunchRequest, getMyMispunchRequests } from "../../services/mispunchService"
-import { getApiErrorMessage } from "../../api/axios"
+import AttendanceCalendar from "../../components/AttendanceCalendar"
+import api, { getApiErrorMessage } from "../../api/axios"
 
 function getGPS() {
   return new Promise((resolve, reject) => {
@@ -226,6 +227,32 @@ export default function HomePage() {
   const targetShiftSeconds = targetShiftHours * 3600
   const progressPercent = Math.min(100, Math.round((elapsedSeconds / targetShiftSeconds) * 100))
   const remainingSeconds = Math.max(0, targetShiftSeconds - elapsedSeconds)
+
+  // Calendar state for Home page
+  const [calendarDate, setCalendarDate] = useState(new Date())
+  const [calendarRecords, setCalendarRecords] = useState([])
+  const [calendarHolidays, setCalendarHolidays] = useState([])
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null)
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ]
+
+  const nextCalendarMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
+  const prevCalendarMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
+
+  useEffect(() => {
+    Promise.all([
+      getMyHistory(),
+      api.get("/company/holidays")
+    ])
+      .then(([history, hols]) => {
+        setCalendarRecords(Array.isArray(history) ? history : [])
+        setCalendarHolidays(Array.isArray(hols?.data) ? hols.data : [])
+      })
+      .catch(() => {})
+  }, [])
 
   // Mispunch state on Home page
   const [mispunchRequests, setMispunchRequests] = useState([])
@@ -624,6 +651,80 @@ export default function HomePage() {
           >
             + Request
           </button>
+        </div>
+
+        {/* Attendance Calendar & Interactive Date Selector */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div>
+              <h3 className="text-base font-bold text-gray-900">
+                {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
+              </h3>
+              <p className="text-[11px] text-gray-500">Tap any date below to inspect status or request mispunch</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={prevCalendarMonth} className="rounded-lg p-2 hover:bg-gray-100">
+                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button onClick={nextCalendarMonth} className="rounded-lg p-2 hover:bg-gray-100">
+                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <AttendanceCalendar
+            records={calendarRecords}
+            holidays={calendarHolidays}
+            currentDate={calendarDate}
+            selectedDate={selectedCalendarDate}
+            onSelectDate={(dateStr) => setSelectedCalendarDate(dateStr)}
+            saturdayPolicy={user?.saturday_policy || "alt_sat_holiday"}
+          />
+
+          {/* Selected Date Inspection & Direct Mispunch Request Card */}
+          {selectedCalendarDate && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Selected Date Details</p>
+                  <p className="text-sm font-bold text-gray-950">
+                    {new Date(`${selectedCalendarDate}T00:00:00`).toLocaleDateString(undefined, {
+                      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                    })}
+                  </p>
+                </div>
+                {(() => {
+                  const log = calendarRecords.find(r => r.date === selectedCalendarDate)
+                  const hol = calendarHolidays.find(h => h.date === selectedCalendarDate)
+                  const status = log?.day_status || (hol ? "holiday" : "absent")
+                  return <StatusBadge status={status} />
+                })()}
+              </div>
+
+              {(() => {
+                const log = calendarRecords.find(r => r.date === selectedCalendarDate)
+                return (
+                  <div className="flex items-center justify-between text-xs text-gray-700 bg-white p-3 rounded-xl border border-amber-200">
+                    <span>In: <span className="font-semibold text-gray-900">{formatTime(log?.checkin_time)}</span></span>
+                    <span>Out: <span className="font-semibold text-gray-900">{formatTime(log?.checkout_time)}</span></span>
+                    <span>Hours: <span className="font-semibold text-gray-900">{log?.total_hours ? formatHours(log.total_hours) : "--"}</span></span>
+                  </div>
+                )
+              })()}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMispunchDate(selectedCalendarDate)
+                  setShowMispunchModal(true)
+                }}
+                className="w-full rounded-xl bg-amber-600 py-3 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition flex items-center justify-center gap-2"
+              >
+                <span>⏰</span>
+                <span>Request Mispunch for {selectedCalendarDate}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Today status card */}
