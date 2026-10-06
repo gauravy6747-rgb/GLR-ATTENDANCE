@@ -8,6 +8,7 @@ const navItems = [
   { label: "Attendance", path: "/attendance" },
   { label: "Locations", path: "/office-locations" },
   { label: "Leave Requests", path: "/leave-requests" },
+  { label: "Mispunch Requests", path: "/mispunch-requests" },
   { label: "Reports", path: "/reports" },
   { label: "Payroll", path: "/payroll" },
   { label: "Settings", path: "/settings" }

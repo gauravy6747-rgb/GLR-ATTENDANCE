@@ -13,23 +13,18 @@ from app.models.working_days import WorkingDaysConfig  # noqa: F401
 from app.models.comp_off import CompOffBalance, CompOffTransaction  # noqa: F401
 from app.models.leave import LeaveRequest  # noqa: F401
 from app.models.payroll import MonthlySalary  # noqa: F401
+from app.models.mispunch import MisPunchRequest  # noqa: F401
 from app.models.notification import (  # noqa: F401
     NotificationLog,
     PushSubscription,
     FaceVerificationFailure
 )
 
-# ── Create all tables (Already created, bypassed for near-instant startup) ──
-# Base.metadata.create_all(bind=engine)
-
-# ── Safe Database Column Migrations (Bypassed for near-instant startup) ─────
-# from sqlalchemy import text
-# with engine.connect() as conn:
-#     try:
-#         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS base_salary FLOAT DEFAULT 0.0;"))
-#         conn.commit()
-#     except Exception as e:
-#         print("Safe migration skipped or error:", e)
+# ── Create all tables if they don't exist ──
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as _e:
+    print("Table creation warning:", _e)
 
 # ── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="GLR Attendance")
@@ -45,7 +40,7 @@ app.add_middleware(
 )
 
 # ── Routers ─────────────────────────────────────────────────────────────────
-from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave, payroll  # noqa: E402
+from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave, payroll, mispunch  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
@@ -57,6 +52,7 @@ app.include_router(employees.router)
 app.include_router(company.router)
 app.include_router(leave.router)
 app.include_router(payroll.router)
+app.include_router(mispunch.router)
 
 
 @app.get("/")

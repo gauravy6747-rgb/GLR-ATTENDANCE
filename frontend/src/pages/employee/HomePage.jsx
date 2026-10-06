@@ -199,6 +199,33 @@ export default function HomePage() {
     }
   }, [user, navigate])
 
+  // Live Timer for Active Check-in Session
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+
+  useEffect(() => {
+    if (!today?.checkin_time || !today?.is_checked_in) {
+      setElapsedSeconds(0)
+      return
+    }
+
+    const updateTimer = () => {
+      const checkinDt = new Date(today.checkin_time)
+      const now = new Date()
+      const diff = Math.max(0, Math.floor((now.getTime() - checkinDt.getTime()) / 1000))
+      setElapsedSeconds(diff)
+    }
+
+    updateTimer()
+    const timerInterval = setInterval(updateTimer, 1000)
+    return () => clearInterval(timerInterval)
+  }, [today])
+
+  // Target shift hours calculation (6.5 hrs on Saturday half day policy, 8.5 hrs otherwise)
+  const targetShiftHours = (isSaturday && user?.saturday_policy === "all_sat_half_day") ? 6.5 : 8.5
+  const targetShiftSeconds = targetShiftHours * 3600
+  const progressPercent = Math.min(100, Math.round((elapsedSeconds / targetShiftSeconds) * 100))
+  const remainingSeconds = Math.max(0, targetShiftSeconds - elapsedSeconds)
+
   const stopCamera = () => {
     stream?.getTracks().forEach((t) => t.stop())
     setStream(null)
@@ -594,23 +621,64 @@ export default function HomePage() {
             )}
 
             {today && today.is_checked_in && (
-              <>
-                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-600" />
-                  </span>
-                  <p className="text-sm font-semibold text-emerald-700">
-                    Checked in at {formatTime(today.checkin_time)}
-                  </p>
+              <div className="space-y-4">
+                {/* Live Shift Timer Card */}
+                <div className="rounded-2xl border border-emerald-700/30 bg-gradient-to-br from-emerald-900 to-teal-950 p-5 text-white shadow-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
+                      </span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-300">
+                        Shift in Progress
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold text-emerald-200">
+                      In at {formatTime(today.checkin_time)}
+                    </span>
+                  </div>
+
+                  <div className="text-center py-1">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300/80">
+                      Time Worked Today
+                    </p>
+                    <div className="mt-1 font-mono text-3xl font-black tracking-tight text-white drop-shadow-md">
+                      {String(Math.floor(elapsedSeconds / 3600)).padStart(2, "0")}h{" "}
+                      {String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, "0")}m{" "}
+                      {String(elapsedSeconds % 60).padStart(2, "0")}s
+                    </div>
+                  </div>
+
+                  {/* Shift Target Progress Bar */}
+                  <div className="space-y-1.5 border-t border-emerald-800/60 pt-3">
+                    <div className="flex justify-between text-xs font-medium text-emerald-200">
+                      <span>Target: {targetShiftHours} hrs</span>
+                      <span>
+                        {remainingSeconds > 0
+                          ? `${Math.floor(remainingSeconds / 3600)}h ${Math.floor((remainingSeconds % 3600) / 60)}m left`
+                          : "Shift Target Completed! 🎉"}
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-emerald-950">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-1000 ease-out"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-emerald-300/70 text-right font-semibold">
+                      {progressPercent}% completed
+                    </p>
+                  </div>
                 </div>
+
                 <button
                   onClick={() => startFlow("checkout")}
                   className="w-full rounded-2xl border-2 border-gray-900 bg-white py-5 text-lg font-bold text-gray-900 shadow-sm transition hover:bg-gray-50 active:scale-95"
                 >
                   CHECK OUT
                 </button>
-              </>
+              </div>
             )}
           </div>
         )}

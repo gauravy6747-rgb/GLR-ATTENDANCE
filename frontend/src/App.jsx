@@ -13,6 +13,7 @@ import ReportsPage from "./pages/ReportsPage"
 import PayrollPage from "./pages/PayrollPage"
 import CompanySettingsPage from "./pages/CompanySettingsPage"
 import LeaveRequestsPage from "./pages/LeaveRequestsPage"
+import MispunchRequestsPage from "./pages/MispunchRequestsPage"
 import LocationsPage from "./pages/LocationsPage"
 
 // Employee pages
@@ -177,6 +178,14 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <LeaveRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mispunch-requests"
+          element={
+            <ProtectedRoute adminOnly>
+              <MispunchRequestsPage />
             </ProtectedRoute>
           }
         />
