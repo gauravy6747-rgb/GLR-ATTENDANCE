@@ -239,8 +239,8 @@ export default function HomePage() {
 
   useEffect(() => {
     getMyMispunchRequests()
-      .then((reqs) => setMispunchRequests(reqs || []))
-      .catch(() => {})
+      .then((reqs) => setMispunchRequests(Array.isArray(reqs) ? reqs : []))
+      .catch(() => setMispunchRequests([]))
   }, [])
 
   const handleMispunchSubmit = async (e) => {
@@ -272,7 +272,8 @@ export default function HomePage() {
       }
 
       const newReq = await submitMispunchRequest(payload)
-      setMispunchRequests([newReq, ...mispunchRequests])
+      const currentList = Array.isArray(mispunchRequests) ? mispunchRequests : []
+      setMispunchRequests([newReq, ...currentList])
       setSuccessMsg("Mispunch regularization request submitted successfully!")
       setShowMispunchModal(false)
       setMispunchReason("")
@@ -283,7 +284,9 @@ export default function HomePage() {
     }
   }
 
-  const pendingMispunchCount = mispunchRequests.filter(r => r.status === "pending").length
+  const pendingMispunchCount = Array.isArray(mispunchRequests)
+    ? mispunchRequests.filter(r => r && r.status === "pending").length
+    : 0
 
   const stopCamera = () => {
     stream?.getTracks().forEach((t) => t.stop())

@@ -73,7 +73,10 @@ function MispunchRequestsPage() {
     })
   }
 
-  const filteredRequests = requests.filter(req => {
+  const safeRequests = Array.isArray(requests) ? requests : []
+
+  const filteredRequests = safeRequests.filter(req => {
+    if (!req) return false
     const matchesTab = activeTab === "all" ? true : req.status === activeTab
     const matchesSearch = searchTerm === "" ||
       req.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,7 +85,7 @@ function MispunchRequestsPage() {
     return matchesTab && matchesSearch
   })
 
-  const pendingCount = requests.filter(r => r.status === "pending").length
+  const pendingCount = safeRequests.filter(r => r && r.status === "pending").length
 
   return (
     <AdminLayout>

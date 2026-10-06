@@ -1,4 +1,4 @@
-const CACHE_NAME = "glr-attendance-pwa-v2"
+const CACHE_NAME = "glr-attendance-pwa-v3"
 
 const APP_SHELL = [
   "/",
@@ -20,7 +20,8 @@ const API_PREFIXES = [
   "/export",
   "/company",
   "/leave",
-  "/payroll"
+  "/payroll",
+  "/mispunch"
 ]
 
 self.addEventListener("install", (event) => {
