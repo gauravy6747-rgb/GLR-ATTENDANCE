@@ -653,79 +653,7 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Attendance Calendar & Interactive Date Selector */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div>
-              <h3 className="text-base font-bold text-gray-900">
-                {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
-              </h3>
-              <p className="text-[11px] text-gray-500">Tap any date below to inspect status or request mispunch</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={prevCalendarMonth} className="rounded-lg p-2 hover:bg-gray-100">
-                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-              </button>
-              <button onClick={nextCalendarMonth} className="rounded-lg p-2 hover:bg-gray-100">
-                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </button>
-            </div>
-          </div>
 
-          <AttendanceCalendar
-            records={calendarRecords}
-            holidays={calendarHolidays}
-            currentDate={calendarDate}
-            selectedDate={selectedCalendarDate}
-            onSelectDate={(dateStr) => setSelectedCalendarDate(dateStr)}
-            saturdayPolicy={user?.saturday_policy || "alt_sat_holiday"}
-          />
-
-          {/* Selected Date Inspection & Direct Mispunch Request Card */}
-          {selectedCalendarDate && (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-5 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Selected Date Details</p>
-                  <p className="text-sm font-bold text-gray-950">
-                    {new Date(`${selectedCalendarDate}T00:00:00`).toLocaleDateString(undefined, {
-                      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-                    })}
-                  </p>
-                </div>
-                {(() => {
-                  const log = calendarRecords.find(r => r.date === selectedCalendarDate)
-                  const hol = calendarHolidays.find(h => h.date === selectedCalendarDate)
-                  const status = log?.day_status || (hol ? "holiday" : "absent")
-                  return <StatusBadge status={status} />
-                })()}
-              </div>
-
-              {(() => {
-                const log = calendarRecords.find(r => r.date === selectedCalendarDate)
-                return (
-                  <div className="flex items-center justify-between text-xs text-gray-700 bg-white p-3 rounded-xl border border-amber-200">
-                    <span>In: <span className="font-semibold text-gray-900">{formatTime(log?.checkin_time)}</span></span>
-                    <span>Out: <span className="font-semibold text-gray-900">{formatTime(log?.checkout_time)}</span></span>
-                    <span>Hours: <span className="font-semibold text-gray-900">{log?.total_hours ? formatHours(log.total_hours) : "--"}</span></span>
-                  </div>
-                )
-              })()}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMispunchDate(selectedCalendarDate)
-                  setShowMispunchModal(true)
-                }}
-                className="w-full rounded-xl bg-amber-600 py-3 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition flex items-center justify-center gap-2"
-              >
-                <span>⏰</span>
-                <span>Request Mispunch for {selectedCalendarDate}</span>
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Today status card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -873,38 +801,87 @@ export default function HomePage() {
 
         {/* Modal for Requesting Mispunch from Home */}
         {showMispunchModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100">
-              <h3 className="text-lg font-bold text-gray-950">
-                Request Mispunch Regularization
-              </h3>
-              <p className="mt-1 text-xs text-gray-500">
-                Select date and missing punch times for approval by Admin.
-              </p>
-
-              <form onSubmit={handleMispunchSubmit} className="mt-4 space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/50 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Attendance Date
-                  </label>
-                  <input
-                    type="date"
-                    max={new Date().toISOString().split("T")[0]}
-                    value={mispunchDate}
-                    onChange={(e) => setMispunchDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
-                    required
+                  <h3 className="text-lg font-bold text-gray-950">
+                    Request Mispunch Regularization
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Tap a date on the calendar below to select the mispunch date.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowMispunchModal(false)}
+                  className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleMispunchSubmit} className="space-y-4">
+                {/* Visual Calendar Date Picker inside Modal */}
+                <div className="space-y-2 border border-gray-200 bg-gray-50/50 p-3.5 rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                      1. Select Attendance Date
+                    </label>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 bg-white px-2.5 py-1 rounded-lg border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={prevCalendarMonth}
+                        className="rounded p-1 hover:bg-gray-100"
+                      >
+                        ‹
+                      </button>
+                      <span>{monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}</span>
+                      <button
+                        type="button"
+                        onClick={nextCalendarMonth}
+                        className="rounded p-1 hover:bg-gray-100"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+
+                  <AttendanceCalendar
+                    records={calendarRecords}
+                    holidays={calendarHolidays}
+                    currentDate={calendarDate}
+                    selectedDate={mispunchDate}
+                    onSelectDate={(dateStr) => setMispunchDate(dateStr)}
+                    saturdayPolicy={user?.saturday_policy || "alt_sat_holiday"}
                   />
+
+                  {/* Selected Date Summary Banner */}
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-amber-800 font-medium">Selected Date: </span>
+                      <span className="font-bold text-gray-950">
+                        {new Date(`${mispunchDate}T00:00:00`).toLocaleDateString(undefined, {
+                          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                    {(() => {
+                      const log = calendarRecords.find(r => r.date === mispunchDate)
+                      const hol = calendarHolidays.find(h => h.date === mispunchDate)
+                      const status = log?.day_status || (hol ? "holiday" : "absent")
+                      return <StatusBadge status={status} />
+                    })()}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Mis-punch Type
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                    2. Mis-punch Type
                   </label>
                   <select
                     value={mispunchType}
                     onChange={(e) => setMispunchType(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                    className="w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100"
                   >
                     <option value="checkout_only">Forgot Check-out Only</option>
                     <option value="checkin_only">Forgot Check-in Only</option>
@@ -914,14 +891,14 @@ export default function HomePage() {
 
                 {["checkin_only", "both"].includes(mispunchType) && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Requested Check-in Time
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                      3. Requested Check-in Time
                     </label>
                     <input
                       type="time"
                       value={mispunchCheckin}
                       onChange={(e) => setMispunchCheckin(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                      className="w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100"
                       required
                     />
                   </div>
@@ -929,47 +906,47 @@ export default function HomePage() {
 
                 {["checkout_only", "both"].includes(mispunchType) && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Requested Check-out Time
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                      3. Requested Check-out Time
                     </label>
                     <input
                       type="time"
                       value={mispunchCheckout}
                       onChange={(e) => setMispunchCheckout(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                      className="w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100"
                       required
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Reason for Mispunch
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                    4. Reason for Mispunch
                   </label>
                   <textarea
                     rows={3}
                     value={mispunchReason}
                     onChange={(e) => setMispunchReason(e.target.value)}
                     placeholder="e.g. System issue / Forgot to checkout while leaving office..."
-                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                    className="w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100 resize-none"
                     required
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={() => setShowMispunchModal(false)}
-                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                    className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={mispunchSubmitting}
-                    className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition disabled:opacity-50"
+                    className="rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-amber-700 transition disabled:opacity-50"
                   >
-                    {mispunchSubmitting ? "Submitting..." : "Submit Request"}
+                    {mispunchSubmitting ? "Submitting..." : "Submit Mispunch Request"}
                   </button>
                 </div>
               </form>

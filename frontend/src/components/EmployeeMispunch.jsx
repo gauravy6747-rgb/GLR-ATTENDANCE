@@ -1,12 +1,45 @@
 import { useState, useEffect } from "react"
 import { submitMispunchRequest, getMyMispunchRequests } from "../services/mispunchService"
-import { getApiErrorMessage } from "../api/axios"
+import { getMyHistory } from "../services/attendanceService"
+import AttendanceCalendar from "./AttendanceCalendar"
+import api, { getApiErrorMessage } from "../api/axios"
+import { useAuth } from "../context/AuthContext"
+
+function StatusBadge({ status }) {
+  const map = {
+    full_day: { label: "Full Day", cls: "bg-emerald-100 text-emerald-700" },
+    half_day: { label: "Half Day", cls: "bg-amber-100 text-amber-700" },
+    present: { label: "Present", cls: "bg-blue-100 text-blue-700" },
+    holiday: { label: "Holiday", cls: "bg-purple-100 text-purple-700" },
+    absent: { label: "Absent", cls: "bg-red-100 text-red-700" },
+  }
+  const s = map[status] || { label: status || "—", cls: "bg-gray-100 text-gray-700" }
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.cls}`}>
+      {s.label}
+    </span>
+  )
+}
 
 export default function EmployeeMispunch() {
+  const { user } = useAuth()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
+
+  // Calendar states inside modal
+  const [calendarDate, setCalendarDate] = useState(new Date())
+  const [calendarRecords, setCalendarRecords] = useState([])
+  const [calendarHolidays, setCalendarHolidays] = useState([])
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ]
+
+  const nextCalendarMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
+  const prevCalendarMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
 
   // Form state
   const [showModal, setShowModal] = useState(false)
@@ -19,6 +52,15 @@ export default function EmployeeMispunch() {
 
   useEffect(() => {
     fetchMyRequests()
+    Promise.all([
+      getMyHistory(),
+      api.get("/company/holidays")
+    ])
+      .then(([history, hols]) => {
+        setCalendarRecords(Array.isArray(history) ? history : [])
+        setCalendarHolidays(Array.isArray(hols?.data) ? hols.data : [])
+      })
+      .catch(() => {})
   }, [])
 
   const fetchMyRequests = async () => {
@@ -183,28 +225,77 @@ export default function EmployeeMispunch() {
 
       {/* Modal for Requesting Mispunch */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-950">
-              Request Mispunch Regularization
-            </h3>
-            <p className="mt-1 text-xs text-gray-500">
-              Select date and missing punch times for approval by Admin.
-            </p>
-
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Attendance Date
-                </label>
-                <input
-                  type="date"
-                  max={new Date().toISOString().split("T")[0]}
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-1"
-                  required
+                <h3 className="text-lg font-bold text-gray-950">
+                  Request Mispunch Regularization
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Tap a date on the calendar below to select the mispunch date.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Calendar Date Picker inside Modal */}
+              <div className="space-y-2 border border-gray-200 bg-gray-50/50 p-3.5 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                    1. Select Attendance Date
+                  </label>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 bg-white px-2.5 py-1 rounded-lg border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={prevCalendarMonth}
+                      className="rounded p-1 hover:bg-gray-100"
+                    >
+                      ‹
+                    </button>
+                    <span>{monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}</span>
+                    <button
+                      type="button"
+                      onClick={nextCalendarMonth}
+                      className="rounded p-1 hover:bg-gray-100"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+
+                <AttendanceCalendar
+                  records={calendarRecords}
+                  holidays={calendarHolidays}
+                  currentDate={calendarDate}
+                  selectedDate={date}
+                  onSelectDate={(dateStr) => setDate(dateStr)}
+                  saturdayPolicy={user?.saturday_policy || "alt_sat_holiday"}
                 />
+
+                {/* Selected Date Summary Banner */}
+                <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-emerald-800 font-medium">Selected Date: </span>
+                    <span className="font-bold text-gray-950">
+                      {new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+                        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  {(() => {
+                    const log = calendarRecords.find(r => r.date === date)
+                    const hol = calendarHolidays.find(h => h.date === date)
+                    const status = log?.day_status || (hol ? "holiday" : "absent")
+                    return <StatusBadge status={status} />
+                  })()}
+                </div>
               </div>
 
               <div>
