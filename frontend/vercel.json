@@ -10,8 +10,9 @@
     { "source": "/company/(.*)", "destination": "https://glr.taxplanadvisor.in/company/$1" },
     { "source": "/leave/(.*)", "destination": "https://glr.taxplanadvisor.in/leave/$1" },
     { "source": "/payroll/(.*)", "destination": "https://glr.taxplanadvisor.in/payroll/$1" },
+    { "source": "/mispunch/(.*)", "destination": "https://glr.taxplanadvisor.in/mispunch/$1" },
     {
-      "source": "/((?!assets|icons|favicon.svg|icons.svg|manifest.webmanifest|service-worker.js|auth/|dashboard/|attendance/|face/|locations/|export/|employees/|company/|leave/|payroll/).*)",
+      "source": "/((?!assets|icons|favicon.svg|icons.svg|manifest.webmanifest|service-worker.js|auth/|dashboard/|attendance/|face/|locations/|export/|employees/|company/|leave/|payroll/|mispunch/).*)",
       "destination": "/index.html"
     }
   ]

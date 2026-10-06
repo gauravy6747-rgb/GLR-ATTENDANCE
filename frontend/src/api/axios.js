@@ -39,7 +39,19 @@ export function getApiErrorMessage(error, fallbackMessage) {
       ? "Backend is not running. Start the FastAPI server on port 8000."
       : "Could not reach the server. Please check your connection and try again."
   }
-  return error.response.data?.detail || fallbackMessage
+
+  const detail = error.response.data?.detail || error.response.data?.message
+  if (Array.isArray(detail)) {
+    return detail.map((d) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join("; ")
+  }
+  if (typeof detail === "object" && detail !== null) {
+    return JSON.stringify(detail)
+  }
+  if (typeof detail === "string" && detail.trim() && !detail.trim().startsWith("<")) {
+    return detail
+  }
+
+  return fallbackMessage
 }
 
 export default api

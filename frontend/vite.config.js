@@ -20,6 +20,7 @@ export default defineConfig({
       "/company":               { target: API_TARGET, changeOrigin: true },
       "/leave/":                { target: API_TARGET, changeOrigin: true },
       "/payroll":               { target: API_TARGET, changeOrigin: true },
+      "/mispunch":              { target: API_TARGET, changeOrigin: true },
     }
   }
 })
