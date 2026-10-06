@@ -51,11 +51,11 @@ export default function EmployeeMispunch() {
       let reqCheckout = null
 
       if (["checkin_only", "both"].includes(requestType) && checkinTime) {
-        reqCheckin = new Date(`${date}T${checkinTime}:00`).toISOString()
+        reqCheckin = `${date}T${checkinTime}:00`
       }
 
       if (["checkout_only", "both"].includes(requestType) && checkoutTime) {
-        reqCheckout = new Date(`${date}T${checkoutTime}:00`).toISOString()
+        reqCheckout = `${date}T${checkoutTime}:00`
       }
 
       const payload = {

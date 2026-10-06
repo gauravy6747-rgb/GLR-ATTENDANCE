@@ -258,6 +258,30 @@ def action_mispunch_request(
     if mispunch_req.requested_checkout_time:
         attendance.checkout_time = mispunch_req.requested_checkout_time
 
+    # Sync or create AttendanceInterval for this log
+    from app.models.attendance import AttendanceInterval
+    active_interval = db.query(AttendanceInterval).filter(
+        AttendanceInterval.attendance_log_id == attendance.id,
+        AttendanceInterval.checkout_time == None
+    ).first()
+
+    if active_interval:
+        if attendance.checkout_time:
+            active_interval.checkout_time = attendance.checkout_time
+            checkin_n = active_interval.checkin_time.replace(tzinfo=None)
+            checkout_n = attendance.checkout_time.replace(tzinfo=None)
+            active_interval.duration_hours = max(0.0, round((checkout_n - checkin_n).total_seconds() / 3600, 2))
+    else:
+        if attendance.checkin_time:
+            dur = attendance.total_hours or 0.0
+            new_interval = AttendanceInterval(
+                attendance_log_id=attendance.id,
+                checkin_time=attendance.checkin_time,
+                checkout_time=attendance.checkout_time,
+                duration_hours=dur
+            )
+            db.add(new_interval)
+
     # Calculate status and hours
     target_policy = target_user.saturday_policy or "alt_sat_holiday"
     today_date = mispunch_req.date

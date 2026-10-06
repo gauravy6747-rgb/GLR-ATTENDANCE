@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import EmployeeLayout from "../../layouts/EmployeeLayout"
 import { getTodayAttendance, checkin, checkout } from "../../services/attendanceService"
+import { submitMispunchRequest, getMyMispunchRequests } from "../../services/mispunchService"
 import { getApiErrorMessage } from "../../api/axios"
 
 function getGPS() {
@@ -225,6 +226,64 @@ export default function HomePage() {
   const targetShiftSeconds = targetShiftHours * 3600
   const progressPercent = Math.min(100, Math.round((elapsedSeconds / targetShiftSeconds) * 100))
   const remainingSeconds = Math.max(0, targetShiftSeconds - elapsedSeconds)
+
+  // Mispunch state on Home page
+  const [mispunchRequests, setMispunchRequests] = useState([])
+  const [showMispunchModal, setShowMispunchModal] = useState(false)
+  const [mispunchDate, setMispunchDate] = useState(new Date().toISOString().split("T")[0])
+  const [mispunchType, setMispunchType] = useState("checkout_only")
+  const [mispunchCheckin, setMispunchCheckin] = useState("09:30")
+  const [mispunchCheckout, setMispunchCheckout] = useState("18:00")
+  const [mispunchReason, setMispunchReason] = useState("")
+  const [mispunchSubmitting, setMispunchSubmitting] = useState(false)
+
+  useEffect(() => {
+    getMyMispunchRequests()
+      .then((reqs) => setMispunchRequests(reqs || []))
+      .catch(() => {})
+  }, [])
+
+  const handleMispunchSubmit = async (e) => {
+    e.preventDefault()
+    if (!mispunchReason.trim()) {
+      alert("Please provide a reason for the mispunch request.")
+      return
+    }
+
+    setMispunchSubmitting(true)
+    try {
+      let reqCheckin = null
+      let reqCheckout = null
+
+      if (["checkin_only", "both"].includes(mispunchType) && mispunchCheckin) {
+        reqCheckin = `${mispunchDate}T${mispunchCheckin}:00`
+      }
+
+      if (["checkout_only", "both"].includes(mispunchType) && mispunchCheckout) {
+        reqCheckout = `${mispunchDate}T${mispunchCheckout}:00`
+      }
+
+      const payload = {
+        date: mispunchDate,
+        request_type: mispunchType,
+        requested_checkin_time: reqCheckin,
+        requested_checkout_time: reqCheckout,
+        reason: mispunchReason.trim()
+      }
+
+      const newReq = await submitMispunchRequest(payload)
+      setMispunchRequests([newReq, ...mispunchRequests])
+      setSuccessMsg("Mispunch regularization request submitted successfully!")
+      setShowMispunchModal(false)
+      setMispunchReason("")
+    } catch (err) {
+      alert(getApiErrorMessage(err, "Failed to submit mispunch request"))
+    } finally {
+      setMispunchSubmitting(false)
+    }
+  }
+
+  const pendingMispunchCount = mispunchRequests.filter(r => r.status === "pending").length
 
   const stopCamera = () => {
     stream?.getTracks().forEach((t) => t.stop())
@@ -539,6 +598,31 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Mispunch Quick Card */}
+        <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/70 to-orange-50/50 p-4 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white font-bold text-lg shadow-sm">
+              ⏰
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-gray-950">Forgot Punch?</h4>
+              <p className="text-xs text-gray-500">Submit a mispunch regularization request</p>
+              {pendingMispunchCount > 0 && (
+                <span className="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-full">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+                  {pendingMispunchCount} Request Pending
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowMispunchModal(true)}
+            className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition"
+          >
+            + Request
+          </button>
+        </div>
+
         {/* Today status card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase text-gray-400 mb-4">Today&apos;s Attendance</p>
@@ -680,6 +764,112 @@ export default function HomePage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Modal for Requesting Mispunch from Home */}
+        {showMispunchModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-950">
+                Request Mispunch Regularization
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Select date and missing punch times for approval by Admin.
+              </p>
+
+              <form onSubmit={handleMispunchSubmit} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Attendance Date
+                  </label>
+                  <input
+                    type="date"
+                    max={new Date().toISOString().split("T")[0]}
+                    value={mispunchDate}
+                    onChange={(e) => setMispunchDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Mis-punch Type
+                  </label>
+                  <select
+                    value={mispunchType}
+                    onChange={(e) => setMispunchType(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                  >
+                    <option value="checkout_only">Forgot Check-out Only</option>
+                    <option value="checkin_only">Forgot Check-in Only</option>
+                    <option value="both">Forgot Both Check-in & Check-out</option>
+                  </select>
+                </div>
+
+                {["checkin_only", "both"].includes(mispunchType) && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Requested Check-in Time
+                    </label>
+                    <input
+                      type="time"
+                      value={mispunchCheckin}
+                      onChange={(e) => setMispunchCheckin(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                      required
+                    />
+                  </div>
+                )}
+
+                {["checkout_only", "both"].includes(mispunchType) && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Requested Check-out Time
+                    </label>
+                    <input
+                      type="time"
+                      value={mispunchCheckout}
+                      onChange={(e) => setMispunchCheckout(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Reason for Mispunch
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={mispunchReason}
+                    onChange={(e) => setMispunchReason(e.target.value)}
+                    placeholder="e.g. System issue / Forgot to checkout while leaving office..."
+                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-1"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMispunchModal(false)}
+                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={mispunchSubmitting}
+                    className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition disabled:opacity-50"
+                  >
+                    {mispunchSubmitting ? "Submitting..." : "Submit Request"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
