@@ -99,14 +99,25 @@ export default function AttendanceCalendar({ records, holidays, currentDate, sel
     }
     
     let cellStyle = ""
+    let cellInlineStyle = {}
     if (isSelected) {
       if (dayInfo) {
-        cellStyle = `${statusColors[dayInfo.type]} ring-2 ring-emerald-600 ring-offset-2 z-10`
+        cellStyle = `${statusColors[dayInfo.type]} ring-2 ring-emerald-500 ring-offset-2 z-10 shadow-md`
       } else {
-        cellStyle = "border-2 border-emerald-500 bg-emerald-50/30 text-emerald-700 z-10"
+        cellStyle = "border-2 border-emerald-500 z-10 shadow-sm font-bold"
+        cellInlineStyle = { background: "rgba(16, 185, 129, 0.15)", color: "var(--color-accent)" }
       }
     } else {
-      cellStyle = dayInfo ? statusColors[dayInfo.type] : "bg-white text-gray-700 border border-gray-100 hover:bg-gray-50"
+      if (dayInfo) {
+        cellStyle = `${statusColors[dayInfo.type]} shadow-sm`
+      } else {
+        cellStyle = "transition-colors hover:opacity-90"
+        cellInlineStyle = {
+          background: "var(--color-surface-raised)",
+          color: "var(--color-text)",
+          border: "1px solid var(--color-border)",
+        }
+      }
     }
 
     days.push(
@@ -114,22 +125,25 @@ export default function AttendanceCalendar({ records, holidays, currentDate, sel
         key={d} 
         type="button"
         onClick={() => onSelectDate?.(dateStr)}
+        style={cellInlineStyle}
         className={`relative h-10 sm:h-14 flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95 outline-none
           ${cellStyle}
-          ${isToday && !isSelected ? "ring-2 ring-emerald-600 ring-offset-2" : ""}
+          ${isToday && !isSelected ? "ring-2 ring-emerald-500 ring-offset-1" : ""}
         `}
       >
         <span>{d}</span>
         {dayInfo?.type === "holiday" && (
-          <div className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-white/60" />
+          <div className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-white/70" />
         )}
       </button>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+    <div className="rounded-2xl p-5 shadow-sm transition-colors duration-300"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold uppercase tracking-wider mb-2"
+        style={{ color: "var(--color-text-secondary)" }}>
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d}>{d}</div>)}
       </div>
 
@@ -137,7 +151,8 @@ export default function AttendanceCalendar({ records, holidays, currentDate, sel
         {days}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2">
+      <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 pt-3 border-t"
+        style={{ borderColor: "var(--color-border)" }}>
         {[
           { label: "Present", color: "bg-emerald-500" },
           { label: "Half Day", color: "bg-amber-500" },
@@ -146,7 +161,7 @@ export default function AttendanceCalendar({ records, holidays, currentDate, sel
         ].map(l => (
           <div key={l.label} className="flex items-center gap-2">
             <div className={`h-2.5 w-2.5 rounded-full ${l.color}`} />
-            <span className="text-[10px] font-bold text-gray-500 uppercase">{l.label}</span>
+            <span className="text-[10px] font-bold uppercase" style={{ color: "var(--color-text-secondary)" }}>{l.label}</span>
           </div>
         ))}
       </div>

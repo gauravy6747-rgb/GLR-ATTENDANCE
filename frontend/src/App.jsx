@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
 import OfflineBanner from "./components/OfflineBanner"
 import PwaInstallPrompt from "./components/PwaInstallPrompt"
+import { ThemeProvider } from "./context/ThemeContext.jsx"
+import ThemeToggle from "./components/ThemeToggle.jsx"
 
 // Admin pages
 import LoginPage from "./pages/LoginPage"
@@ -27,10 +29,10 @@ function ProtectedRoute({ children, adminOnly = false, employeeOnly = false }) {
 
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f6f7f9]">
+      <div className="grid min-h-screen place-items-center" style={{ background: "var(--color-bg)" }}>
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-          <p className="text-sm text-gray-400">Loading…</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Loading…</p>
         </div>
       </div>
     )
@@ -55,8 +57,8 @@ function RootRedirect() {
 
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f6f7f9]">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+      <div className="grid min-h-screen place-items-center" style={{ background: "var(--color-bg)" }}>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
       </div>
     )
   }
@@ -72,10 +74,11 @@ function RootRedirect() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <OfflineBanner />
-      <PwaInstallPrompt />
-      <Routes>
+    <ThemeProvider>
+      <BrowserRouter>
+        <OfflineBanner />
+        <PwaInstallPrompt />
+        <Routes>
         {/* Public — smart redirect if already logged in */}
         <Route path="/" element={<RootRedirect />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -191,8 +194,9 @@ function App() {
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 

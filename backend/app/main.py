@@ -19,6 +19,7 @@ from app.models.notification import (  # noqa: F401
     PushSubscription,
     FaceVerificationFailure
 )
+from app.models.monthly_note import MonthlyNote  # noqa: F401
 
 # ── Create all tables if they don't exist ──
 try:
@@ -40,7 +41,7 @@ app.add_middleware(
 )
 
 # ── Routers ─────────────────────────────────────────────────────────────────
-from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave, payroll, mispunch  # noqa: E402
+from app.routers import auth, employees, attendance, face, location, dashboard, export, company, leave, payroll, mispunch, monthly_note  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
@@ -53,6 +54,7 @@ app.include_router(company.router)
 app.include_router(leave.router)
 app.include_router(payroll.router)
 app.include_router(mispunch.router)
+app.include_router(monthly_note.router)
 
 
 @app.get("/")

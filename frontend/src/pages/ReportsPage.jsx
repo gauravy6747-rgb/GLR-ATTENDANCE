@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import AdminLayout from "../layouts/AdminLayout"
 import { downloadAttendanceReport } from "../services/reportService"
 import { getEmployees } from "../services/employeeService"
+import { getAdminMonthlyNotes } from "../services/monthlyNoteService"
 import { getApiErrorMessage } from "../api/axios"
 
 const getISTComponents = () => {
@@ -50,6 +51,9 @@ export default function ReportsPage() {
   const [loadingEmployees, setLoadingEmployees] = useState(true)
   const [error, setError] = useState("")
 
+  const [monthlyNotes, setMonthlyNotes] = useState([])
+  const [loadingNotes, setLoadingNotes] = useState(false)
+
   useEffect(() => {
     getEmployees()
       .then((data) => {
@@ -59,6 +63,14 @@ export default function ReportsPage() {
       .catch((err) => setError(getApiErrorMessage(err, "Failed to load employees list")))
       .finally(() => setLoadingEmployees(false))
   }, [])
+
+  useEffect(() => {
+    setLoadingNotes(true)
+    getAdminMonthlyNotes(selectedYear, selectedMonth)
+      .then((notes) => setMonthlyNotes(Array.isArray(notes) ? notes : []))
+      .catch(() => setMonthlyNotes([]))
+      .finally(() => setLoadingNotes(false))
+  }, [selectedYear, selectedMonth])
 
   const handleDownload = async (e) => {
     e.preventDefault()
@@ -256,6 +268,59 @@ export default function ReportsPage() {
             </button>
           </div>
         </form>
+
+        {/* Employee Monthly Issue Messages Section */}
+        <div className="max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div>
+              <h3 className="text-lg font-bold text-gray-950 flex items-center gap-2">
+                <span>📝</span> Submitted Employee Issue Messages
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Attendance issue notes submitted by employees for {months.find(m => m.value === selectedMonth)?.label || selectedMonth} {selectedYear}. These notes are also automatically embedded in the exported Excel sheet.
+              </p>
+            </div>
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 border border-indigo-100">
+              {monthlyNotes.length} Note{monthlyNotes.length === 1 ? "" : "s"} Submitted
+            </span>
+          </div>
+
+          {loadingNotes ? (
+            <p className="text-sm text-gray-400 py-4 text-center font-medium">Loading submitted notes...</p>
+          ) : monthlyNotes.length === 0 ? (
+            <div className="rounded-xl bg-gray-50 border border-gray-100 p-6 text-center">
+              <p className="text-sm font-semibold text-gray-500">No attendance issue notes submitted for this month.</p>
+              <p className="text-xs text-gray-400 mt-1">Employees can submit notes during days 1–5 of each month on their home page.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
+              <table className="w-full text-left text-sm text-gray-600">
+                <thead className="bg-gray-50 text-xs uppercase font-bold text-gray-400 border-b border-gray-100">
+                  <tr>
+                    <th className="px-4 py-3">Employee</th>
+                    <th className="px-4 py-3">Employee ID</th>
+                    <th className="px-4 py-3">Message / Attendance Note</th>
+                    <th className="px-4 py-3">Last Updated</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {monthlyNotes.map((note) => (
+                    <tr key={note.id} className="hover:bg-gray-50/80 transition">
+                      <td className="px-4 py-3 font-bold text-gray-900">{note.employee_name}</td>
+                      <td className="px-4 py-3 font-semibold text-gray-500">{note.employee_id}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800 whitespace-pre-wrap max-w-md">
+                        {note.note}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-400">
+                        {note.updated_at ? new Date(note.updated_at).toLocaleString() : "--"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </AdminLayout>
   )

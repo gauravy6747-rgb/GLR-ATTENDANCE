@@ -16,6 +16,7 @@ from app.models.attendance import AttendanceLog
 from app.models.company import Location
 from app.models.holiday import Holiday
 from app.models.working_days import WorkingDaysConfig
+from app.models.monthly_note import MonthlyNote
 from app.routers.attendance import is_user_expected_working_day
 from app.routers.payroll import get_employee_monthly_salary
 from app.services.gps_service import calculate_distance_meters
@@ -178,6 +179,15 @@ def export_attendance_excel(
     employees = emp_query.order_by(User.name).all()
     summary_rows = []
 
+    # Fetch monthly notes for the target period
+    q_year = year or start_dt.year
+    q_month = month or start_dt.month
+    monthly_notes_q = db.query(MonthlyNote).filter(
+        MonthlyNote.year == q_year,
+        MonthlyNote.month == q_month
+    ).all()
+    monthly_note_map = {n.user_id: n.note for n in monthly_notes_q}
+
     for emp in employees:
         logs = db.query(AttendanceLog).filter(
             AttendanceLog.user_id == emp.id,
@@ -241,8 +251,6 @@ def export_attendance_excel(
                         half_days_count += 1
 
         # Calculate base monthly salary
-        q_year = year or today.year
-        q_month = month or today.month
         base_salary = get_employee_monthly_salary(db, emp.id, q_year, q_month, emp.base_salary)
 
         overtime_days = overtime_hours / 9.0
@@ -252,6 +260,7 @@ def export_attendance_excel(
             calculated_salary = ((base_salary / 30.0) * total_paid_days) * 0.99
 
         total_hours_worked = sum(log.total_hours or 0.0 for log in logs)
+        emp_note = monthly_note_map.get(emp.id, "")
 
         summary_rows.append({
             "name": emp.name,
@@ -263,7 +272,8 @@ def export_attendance_excel(
             "absent": absent_days,
             "no. holidays in month": holidays_count,
             "total hours worked": round(total_hours_worked, 2),
-            "total salary calculated": round(calculated_salary, 2)
+            "total salary calculated": round(calculated_salary, 2),
+            "employee monthly issue note": emp_note
         })
 
     df = pd.DataFrame(summary_rows)
@@ -278,7 +288,8 @@ def export_attendance_excel(
             "absent",
             "no. holidays in month",
             "total hours worked",
-            "total salary calculated"
+            "total salary calculated",
+            "employee monthly issue note"
         ])
 
     os.makedirs("exports", exist_ok=True)

@@ -111,31 +111,54 @@ export default function MyAttendancePage() {
 
   return (
     <EmployeeLayout>
-      <div className="mx-auto max-w-md space-y-5 pb-10">
+      <div className="mx-auto max-w-md space-y-5 pb-10 fade-in">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-950">My Attendance</h2>
-          <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
+          <h2 className="text-2xl font-black tracking-tight" style={{ color: "var(--color-text)" }}>
+            My Attendance
+          </h2>
+          <div className="flex gap-1 rounded-xl p-1 border transition-colors duration-300"
+            style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)" }}>
             <button
               onClick={() => setView("calendar")}
-              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "calendar" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className="rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition-all"
+              style={{
+                background: view === "calendar" ? "var(--color-surface)" : "transparent",
+                color: view === "calendar" ? "var(--color-text)" : "var(--color-text-secondary)",
+                boxShadow: view === "calendar" ? "var(--shadow-sm)" : "none",
+              }}
             >
               Calendar
             </button>
             <button
               onClick={() => setView("list")}
-              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className="rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition-all"
+              style={{
+                background: view === "list" ? "var(--color-surface)" : "transparent",
+                color: view === "list" ? "var(--color-text)" : "var(--color-text-secondary)",
+                boxShadow: view === "list" ? "var(--shadow-sm)" : "none",
+              }}
             >
               List
             </button>
             <button
               onClick={() => setView("stats")}
-              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "stats" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className="rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition-all"
+              style={{
+                background: view === "stats" ? "var(--color-surface)" : "transparent",
+                color: view === "stats" ? "var(--color-text)" : "var(--color-text-secondary)",
+                boxShadow: view === "stats" ? "var(--shadow-sm)" : "none",
+              }}
             >
               Stats
             </button>
             <button
               onClick={() => setView("payroll")}
-              className={`rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition ${view === "payroll" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className="rounded-lg px-2.5 py-1.5 text-[10px] sm:text-xs font-bold transition-all"
+              style={{
+                background: view === "payroll" ? "var(--color-surface)" : "transparent",
+                color: view === "payroll" ? "var(--color-text)" : "var(--color-text-secondary)",
+                boxShadow: view === "payroll" ? "var(--shadow-sm)" : "none",
+              }}
             >
               Payroll
             </button>
@@ -144,16 +167,25 @@ export default function MyAttendancePage() {
 
         {/* Unified Month Selector Header */}
         {!loading && !error && !["stats", "payroll"].includes(view) && (
-          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h3 className="text-base font-bold text-gray-900">
+          <div className="flex items-center justify-between rounded-2xl p-4 shadow-sm border transition-colors duration-300"
+            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}>
+            <h3 className="text-base font-extrabold" style={{ color: "var(--color-text)" }}>
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h3>
             <div className="flex gap-2">
-              <button onClick={prevMonth} className="rounded-lg p-2 hover:bg-gray-100">
-                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+              <button
+                onClick={prevMonth}
+                className="rounded-lg p-2 hover:opacity-75 transition border"
+                style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <button onClick={nextMonth} className="rounded-lg p-2 hover:bg-gray-100">
-                <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              <button
+                onClick={nextMonth}
+                className="rounded-lg p-2 hover:opacity-75 transition border"
+                style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
           </div>
@@ -165,19 +197,27 @@ export default function MyAttendancePage() {
             {[
               { label: "Full Days",  value: fullDays },
               { label: "Half Days",  value: halfDays },
-              { label: "Avg Hours/Day", value: `${monthlyRecords.length > 0 ? (totalHrs / monthlyRecords.length).toFixed(1) : "0.0"}h` }
+              { label: "Avg Hrs/Day", value: `${monthlyRecords.length > 0 ? (totalHrs / monthlyRecords.length).toFixed(1) : "0.0"}h` }
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 text-center shadow-sm">
-                <p className="text-xl font-bold text-gray-950">{value}</p>
-                <p className="mt-1 text-[10px] font-bold uppercase text-gray-400">{label}</p>
+              <div
+                key={label}
+                className="rounded-2xl p-4 text-center shadow-sm border transition-colors duration-300"
+                style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+              >
+                <p className="text-xl font-black" style={{ color: "var(--color-text)" }}>{value}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+                  {label}
+                </p>
               </div>
             ))}
           </div>
         )}
 
-        {loading && <p className="text-sm text-gray-400">Loading…</p>}
+        {loading && <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-secondary)" }}>Loading attendance…</p>}
         {error && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+          <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-500">
+            {error}
+          </p>
         )}
 
         {/* Calendar View */}
@@ -199,24 +239,33 @@ export default function MyAttendancePage() {
         {!loading && !error && view === "list" && (
           <div className="space-y-3">
             {monthlyRecords.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-10">No attendance records for this month.</p>
+              <p className="text-sm text-center py-10" style={{ color: "var(--color-text-secondary)" }}>
+                No attendance records for this month.
+              </p>
             )}
             {monthlyRecords.map((record, i) => (
-              <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-emerald-200">
+              <div
+                key={i}
+                className="rounded-2xl p-4 shadow-sm border transition-all duration-200 hover:scale-[1.01]"
+                style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+              >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-bold text-gray-900">{formatDate(record.date)}</p>
-                    <div className="mt-1 flex items-center gap-4 text-xs text-gray-500">
-                      <span>In: <span className="font-semibold text-gray-700">{formatTime(record.checkin_time)}</span></span>
-                      <span>Out: <span className="font-semibold text-gray-700">{formatTime(record.checkout_time)}</span></span>
+                    <p className="text-sm font-extrabold" style={{ color: "var(--color-text)" }}>
+                      {formatDate(record.date)}
+                    </p>
+                    <div className="mt-1 flex items-center gap-4 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                      <span>In: <span className="font-semibold" style={{ color: "var(--color-text)" }}>{formatTime(record.checkin_time)}</span></span>
+                      <span>Out: <span className="font-semibold" style={{ color: "var(--color-text)" }}>{formatTime(record.checkout_time)}</span></span>
                     </div>
                     {record.total_hours > 0 && (
-                      <p className="mt-1 text-[10px] font-bold uppercase text-gray-400">
+                      <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-accent)" }}>
                         {formatHours(record.total_hours)} worked
                       </p>
                     )}
                     {record.checkin_note && (
-                      <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs italic text-gray-500">
+                      <p className="mt-2 rounded-lg p-2.5 text-xs italic border"
+                        style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}>
                         &ldquo;{record.checkin_note}&rdquo;
                       </p>
                     )}

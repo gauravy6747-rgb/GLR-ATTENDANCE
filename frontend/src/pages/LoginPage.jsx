@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import api, { getApiErrorMessage } from "../api/axios"
+import ThemeToggle from "../components/ThemeToggle"
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -64,23 +65,54 @@ function LoginPage() {
   }
  
   return (
-    <div className="grid min-h-screen place-items-center bg-[#f6f7f9] px-4 py-10">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="mb-8">
-          <div className="mb-5 grid h-12 w-12 place-items-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
-            GLR
+    <div
+      className="grid min-h-screen place-items-center px-4 py-10 transition-colors duration-300"
+      style={{ background: "var(--color-bg)" }}
+    >
+      {/* Decorative background orbs */}
+      <div style={{
+        position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0,
+      }}>
+        <div style={{
+          position: "absolute", top: "-10%", right: "-5%", width: "400px", height: "400px",
+          borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)",
+          filter: "blur(60px)",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "-10%", left: "-5%", width: "350px", height: "350px",
+          borderRadius: "50%", background: "radial-gradient(circle, rgba(74,144,217,0.1) 0%, transparent 70%)",
+          filter: "blur(60px)",
+        }} />
+      </div>
+
+      <div
+        className="w-full max-w-md rounded-2xl p-8 scale-in"
+        style={{
+          background: "var(--color-surface)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "var(--shadow-lg)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-bold text-white shadow-lg pulse-glow">
+              GLR
+            </div>
+            <h1 className="text-3xl font-bold" style={{ color: "var(--color-text)" }}>
+              Sign in
+            </h1>
+            <p className="mt-1.5 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+              Access your GLR Attendance workspace.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-950">
-            Sign in
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Access your GLR Attendance workspace.
-          </p>
+          <ThemeToggle />
         </div>
  
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
+            <label className="mb-2 block text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
               Email
             </label>
             <input
@@ -88,20 +120,36 @@ function LoginPage() {
               placeholder="admin@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className="w-full rounded-xl px-4 py-3 outline-none transition-all duration-200"
+              style={{
+                background: "var(--color-surface-raised)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "var(--color-accent)"
+                e.target.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.1)"
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "var(--color-border)"
+                e.target.style.boxShadow = "none"
+              }}
               required
             />
           </div>
  
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
                 Password
               </label>
               <button
                 type="button"
                 onClick={() => setShowResetModal(true)}
-                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition"
+                className="text-xs font-semibold transition-colors duration-200"
+                style={{ color: "var(--color-accent)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-accent-hover)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "var(--color-accent)" }}
               >
                 Forgot Password?
               </button>
@@ -112,13 +160,27 @@ function LoginPage() {
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 pl-4 pr-12 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                className="w-full rounded-xl pl-4 pr-12 py-3 outline-none transition-all duration-200"
+                style={{
+                  background: "var(--color-surface-raised)",
+                  border: "1px solid var(--color-border)",
+                  color: "var(--color-text)",
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "var(--color-accent)"
+                  e.target.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.1)"
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "var(--color-border)"
+                  e.target.style.boxShadow = "none"
+                }}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500 hover:text-gray-700 transition"
+                className="absolute inset-y-0 right-0 flex items-center pr-3.5 transition-colors duration-200"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 {showPassword ? (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -135,7 +197,12 @@ function LoginPage() {
           </div>
  
           {error && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <p className="rounded-xl px-4 py-3 text-sm font-medium"
+              style={{
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.2)",
+                color: "var(--color-danger)",
+              }}>
               {error}
             </p>
           )}
@@ -143,7 +210,11 @@ function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+            className="w-full rounded-xl px-5 py-3 font-semibold text-white transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            style={{
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              boxShadow: "0 4px 14px rgba(16,185,129,0.3)",
+            }}
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
@@ -151,20 +222,33 @@ function LoginPage() {
       </div>
 
       {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl space-y-5 border border-gray-100 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
+          style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="w-full max-w-md rounded-2xl p-8 space-y-5 scale-in"
+            style={{
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              boxShadow: "var(--shadow-lg)",
+            }}>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                  style={{ color: "var(--color-accent)" }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-5-4v12m0 0l-4-4m4 4l4-4" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Forgot Password</h3>
+              <h3 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Forgot Password</h3>
             </div>
             
             {resetMessage ? (
               <div className="space-y-4">
-                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                <p className="rounded-xl px-4 py-3 text-sm font-medium"
+                  style={{
+                    background: "rgba(16,185,129,0.08)",
+                    border: "1px solid rgba(16,185,129,0.2)",
+                    color: "var(--color-accent)",
+                  }}>
                   {resetMessage}
                 </p>
                 <button
@@ -172,19 +256,20 @@ function LoginPage() {
                     setShowResetModal(false)
                     setResetMessage("")
                   }}
-                  className="w-full rounded-lg bg-gray-950 py-3 text-sm font-bold text-white transition hover:bg-gray-800"
+                  className="w-full rounded-xl py-3 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.02]"
+                  style={{ background: "var(--color-text)" }}
                 >
                   Close
                 </button>
               </div>
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-4">
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
                   Enter your email address and we'll send you a secure link to reset your password.
                 </p>
                 
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
                     Email Address
                   </label>
                   <input
@@ -192,13 +277,31 @@ function LoginPage() {
                     placeholder="you@example.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
+                    style={{
+                      background: "var(--color-surface-raised)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text)",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "var(--color-accent)"
+                      e.target.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.1)"
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "var(--color-border)"
+                      e.target.style.boxShadow = "none"
+                    }}
                     required
                   />
                 </div>
 
                 {resetError && (
-                  <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  <p className="rounded-xl px-4 py-3 text-sm font-medium"
+                    style={{
+                      background: "rgba(239,68,68,0.08)",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                      color: "var(--color-danger)",
+                    }}>
                     {resetError}
                   </p>
                 )}
@@ -211,14 +314,23 @@ function LoginPage() {
                       setResetError("")
                       setResetEmail("")
                     }}
-                    className="flex-1 rounded-lg border border-gray-300 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+                    className="flex-1 rounded-xl py-3 text-sm font-bold transition-all duration-200"
+                    style={{
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text)",
+                      background: "transparent",
+                    }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={resetLoading}
-                    className="flex-1 rounded-lg bg-emerald-600 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                    className="flex-1 rounded-xl py-3 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{
+                      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      boxShadow: "0 4px 14px rgba(16,185,129,0.3)",
+                    }}
                   >
                     {resetLoading ? "Sending..." : "Send Link"}
                   </button>

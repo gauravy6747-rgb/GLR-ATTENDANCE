@@ -42,7 +42,7 @@ function MyLeavePage() {
       await api.post("/leave/request", form)
       setShowModal(false)
       setForm({ start_date: "", end_date: "", reason: "" })
-      fetchData() // Refresh list and balance (balance doesn't deduct until approved, but good to refresh)
+      fetchData()
     } catch (err) {
       setFormError(getApiErrorMessage(err, "Failed to submit request"))
     } finally {
@@ -52,69 +52,112 @@ function MyLeavePage() {
 
   return (
     <EmployeeLayout>
-      <div className="mx-auto max-w-md space-y-6">
-        <h2 className="text-2xl font-bold text-gray-950">Leave & Comp-Off</h2>
+      <div className="mx-auto max-w-md space-y-6 pb-10 fade-in">
+        <h2 className="text-2xl font-black tracking-tight" style={{ color: "var(--color-text)" }}>
+          Leave & Comp-Off
+        </h2>
 
         {/* Balance Card */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4">
-            <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Available</span>
+        <div
+          className="rounded-3xl p-6 text-center relative overflow-hidden border shadow-lg transition-colors duration-300"
+          style={{
+            background: "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(56, 189, 248, 0.05) 100%), var(--color-surface)",
+            borderColor: "var(--color-border)",
+          }}
+        >
+          <div className="absolute top-4 right-4">
+            <span
+              className="inline-flex rounded-full px-3 py-1 text-xs font-bold"
+              style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}
+            >
+              Available
+            </span>
           </div>
-          <p className="text-sm font-semibold text-gray-500">Comp-Off Balance</p>
-          <p className="mt-2 text-5xl font-black text-gray-900">{balance.available_balance}</p>
-          <p className="mt-1 text-sm text-gray-400">days</p>
+
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+            Comp-Off Balance
+          </p>
+          <p className="mt-2 text-5xl font-black tracking-tight" style={{ color: "var(--color-text)" }}>
+            {balance.available_balance}
+          </p>
+          <p className="mt-1 text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+            days available
+          </p>
           
-          <div className="mt-6 flex items-center justify-center gap-6 text-sm">
+          <div
+            className="mt-6 flex items-center justify-center gap-6 text-sm border-t pt-4"
+            style={{ borderColor: "var(--color-border)" }}
+          >
             <div>
-              <p className="font-bold text-emerald-600">+{balance.days_earned}</p>
-              <p className="text-[10px] uppercase font-bold text-gray-400">Earned</p>
+              <p className="font-extrabold text-emerald-500">+{balance.days_earned}</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: "var(--color-text-secondary)" }}>Earned</p>
             </div>
-            <div className="h-8 w-px bg-gray-200" />
+            <div className="h-7 w-px" style={{ background: "var(--color-border)" }} />
             <div>
-              <p className="font-bold text-amber-600">-{balance.days_used}</p>
-              <p className="text-[10px] uppercase font-bold text-gray-400">Used</p>
+              <p className="font-extrabold text-amber-500">-{balance.days_used}</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: "var(--color-text-secondary)" }}>Used</p>
             </div>
-            <div className="h-8 w-px bg-gray-200" />
+            <div className="h-7 w-px" style={{ background: "var(--color-border)" }} />
             <div>
-              <p className="font-bold text-blue-600">-{balance.days_paid_out || 0}</p>
-              <p className="text-[10px] uppercase font-bold text-gray-400">Paid Out</p>
+              <p className="font-extrabold text-sky-500">-{balance.days_paid_out || 0}</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: "var(--color-text-secondary)" }}>Paid Out</p>
             </div>
           </div>
         </div>
 
+        {/* Action Button */}
         <button
           onClick={() => setShowModal(true)}
-          className="w-full rounded-xl bg-emerald-600 py-4 text-base font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-95"
+          className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-4 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
         >
-          Request Leave
+          + Request Leave / Comp-Off
         </button>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {loading && <p className="text-sm text-gray-500">Loading...</p>}
+        {error && (
+          <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-500">
+            {error}
+          </p>
+        )}
+        {loading && <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-secondary)" }}>Loading leave data...</p>}
 
         {!loading && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-900">Request History</h3>
-            {requests.length === 0 && <p className="text-sm text-gray-500">No requests found.</p>}
+          <div className="space-y-3">
+            <h3 className="text-base font-extrabold" style={{ color: "var(--color-text)" }}>
+              Request History
+            </h3>
+            {requests.length === 0 && (
+              <p className="text-sm text-center py-8" style={{ color: "var(--color-text-secondary)" }}>
+                No leave requests found.
+              </p>
+            )}
             
             {requests.map(req => (
-              <div key={req.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div
+                key={req.id}
+                className="rounded-2xl p-4 shadow-sm border transition-all hover:scale-[1.01]"
+                style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+              >
                 <div className="flex justify-between items-start mb-2">
-                  <p className="font-bold text-gray-900">
-                    {new Date(req.start_date).toLocaleDateString()}
-                    {req.start_date !== req.end_date && ` - ${new Date(req.end_date).toLocaleDateString()}`}
+                  <p className="font-extrabold text-sm" style={{ color: "var(--color-text)" }}>
+                    {new Date(req.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                    {req.start_date !== req.end_date && ` — ${new Date(req.end_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`}
                   </p>
                   <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold capitalize ${
-                    req.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                    req.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                    'bg-amber-100 text-amber-700'
+                    req.status === 'approved' ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30' :
+                    req.status === 'rejected' ? 'bg-red-500/15 text-red-500 border border-red-500/30' :
+                    'bg-amber-500/15 text-amber-500 border border-amber-500/30'
                   }`}>
                     {req.status}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{req.reason}</p>
+                <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{req.reason}</p>
                 {req.admin_notes && (
-                  <p className="mt-2 rounded bg-gray-50 p-2 text-xs italic text-gray-500">Admin: {req.admin_notes}</p>
+                  <p
+                    className="mt-2 rounded-lg p-2.5 text-xs italic border"
+                    style={{ background: "var(--color-surface-raised)", borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
+                  >
+                    Admin note: {req.admin_notes}
+                  </p>
                 )}
               </div>
             ))}
@@ -124,32 +167,83 @@ function MyLeavePage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Request Leave</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div
+            className="w-full max-w-sm rounded-3xl p-6 shadow-2xl border space-y-4 transition-colors duration-300"
+            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+          >
+            <div className="flex items-center justify-between border-b pb-3"
+              style={{ borderColor: "var(--color-border)" }}>
+              <h3 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Request Leave</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="rounded-full p-1.5 hover:opacity-70"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                ✕
+              </button>
+            </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">Start Date</label>
-                  <input type="date" required value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500" />
+                  <label className="text-xs font-bold uppercase tracking-wider block mb-1"
+                    style={{ color: "var(--color-text-secondary)" }}>Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={form.start_date}
+                    onChange={e => setForm({...form, start_date: e.target.value})}
+                    className="w-full rounded-xl p-2.5 text-sm outline-none transition"
+                    style={{ background: "var(--color-surface-raised)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+                  />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">End Date</label>
-                  <input type="date" required value={form.end_date} onChange={e => setForm({...form, end_date: e.target.value})} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500" />
+                  <label className="text-xs font-bold uppercase tracking-wider block mb-1"
+                    style={{ color: "var(--color-text-secondary)" }}>End Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={form.end_date}
+                    onChange={e => setForm({...form, end_date: e.target.value})}
+                    className="w-full rounded-xl p-2.5 text-sm outline-none transition"
+                    style={{ background: "var(--color-surface-raised)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600">Reason</label>
-                <textarea required value={form.reason} onChange={e => setForm({...form, reason: e.target.value})} rows={3} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500 resize-none" placeholder="Vacation..." />
+                <label className="text-xs font-bold uppercase tracking-wider block mb-1"
+                  style={{ color: "var(--color-text-secondary)" }}>Reason</label>
+                <textarea
+                  required
+                  value={form.reason}
+                  onChange={e => setForm({...form, reason: e.target.value})}
+                  rows={3}
+                  className="w-full rounded-xl p-2.5 text-sm outline-none transition resize-none"
+                  style={{ background: "var(--color-surface-raised)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+                  placeholder="Family occasion, health reasons..."
+                />
               </div>
 
-              {formError && <p className="text-xs font-medium text-red-600">{formError}</p>}
+              {formError && <p className="text-xs font-semibold text-red-500">{formError}</p>}
 
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-xl border border-gray-300 py-3 text-sm font-bold text-gray-700">Cancel</button>
-                <button type="submit" disabled={submitting} className="flex-1 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white disabled:bg-emerald-300">{submitting ? "Sending..." : "Submit"}</button>
+              <div className="flex gap-3 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 rounded-xl py-3 text-xs font-bold border transition hover:opacity-80"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 rounded-xl bg-emerald-500 py-3 text-xs font-bold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-600 transition disabled:opacity-50"
+                >
+                  {submitting ? "Sending..." : "Submit Request"}
+                </button>
               </div>
             </form>
           </div>
