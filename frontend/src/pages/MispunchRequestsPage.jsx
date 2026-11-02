@@ -260,18 +260,29 @@ function MispunchRequestsPage() {
 
         {/* Action Modal */}
         {actionModal.open && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100">
-              <h3 className="text-lg font-bold text-gray-950 capitalize">
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 overflow-y-auto"
+            onClick={() => setActionModal({ open: false, req: null, actionType: "approve", notes: "" })}
+          >
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 shadow-xl transition-colors duration-300"
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold capitalize" style={{ color: "var(--color-text)" }}>
                 {actionModal.actionType} Mispunch Request
               </h3>
-              <p className="mt-1 text-xs text-gray-500">
-                Employee: <span className="font-semibold text-gray-900">{actionModal.req?.employee_name}</span> ({formatDate(actionModal.req?.date)})
+              <p className="mt-1 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                Employee: <span className="font-semibold" style={{ color: "var(--color-text)" }}>{actionModal.req?.employee_name}</span> ({formatDate(actionModal.req?.date)})
               </p>
 
               <form onSubmit={handleActionSubmit} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text)" }}>
                     Admin Note (Optional)
                   </label>
                   <textarea
@@ -279,7 +290,12 @@ function MispunchRequestsPage() {
                     value={actionModal.notes}
                     onChange={(e) => setActionModal(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder={`Reason for ${actionModal.actionType}ing...`}
-                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className="w-full rounded-xl p-2.5 text-sm outline-none transition"
+                    style={{
+                      background: "var(--color-surface-raised)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text)"
+                    }}
                   />
                 </div>
 
@@ -287,7 +303,12 @@ function MispunchRequestsPage() {
                   <button
                     type="button"
                     onClick={() => setActionModal({ open: false, req: null, actionType: "approve", notes: "" })}
-                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                    className="rounded-xl px-4 py-2 text-xs font-bold transition hover:opacity-80"
+                    style={{
+                      background: "var(--color-surface-raised)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text-secondary)"
+                    }}
                   >
                     Cancel
                   </button>

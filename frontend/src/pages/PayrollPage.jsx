@@ -345,13 +345,24 @@ export default function PayrollPage() {
 
       {/* Edit Salary Modal */}
       {editingEmp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/40 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm overflow-y-auto"
+          onClick={() => setEditingEmp(null)}
+        >
+          <div 
+            className="w-full max-w-md overflow-hidden rounded-3xl p-6 shadow-2xl space-y-5 my-auto transition-colors duration-300"
+            style={{
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--color-border)" }}>
               <div>
-                <h3 className="text-base font-black text-gray-950">Update Base Salary</h3>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mt-0.5">
+                <h3 className="text-base font-black" style={{ color: "var(--color-text)" }}>Update Base Salary</h3>
+                <p className="text-xs uppercase tracking-wide mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
                   {editingEmp.name} ({editingEmp.employee_id})
                 </p>
               </div>

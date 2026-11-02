@@ -67,7 +67,7 @@ function AddEmployeeModal({ onClose, onCreated }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm overflow-y-auto"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !loading) {
           onClose()
@@ -247,7 +247,7 @@ function EditEmployeeModal({ employee, onClose, onUpdated }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm overflow-y-auto"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !loading) {
           onClose()
@@ -537,17 +537,35 @@ function EmployeesPage() {
       </div>
       {/* Stats Modal */}
       {selectedEmployeeId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl my-8 relative">
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 overflow-y-auto"
+          onClick={() => setSelectedEmployeeId(null)}
+        >
+          <div 
+            className="w-full max-w-4xl rounded-2xl p-6 shadow-2xl my-8 relative transition-colors duration-300"
+            style={{
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
+              type="button"
               onClick={() => setSelectedEmployeeId(null)}
-              className="absolute right-4 top-4 z-10 rounded-full bg-gray-100 p-2 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition"
+              className="absolute right-4 top-4 z-10 rounded-lg p-2 transition hover:opacity-80"
+              style={{
+                background: "var(--color-surface-raised)",
+                color: "var(--color-text-secondary)",
+                border: "1px solid var(--color-border)"
+              }}
+              aria-label="Close modal"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h3 className="text-xl font-black text-gray-950 mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-black mb-6 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
               <span>📈</span> Employee Working Stats Dashboard
             </h3>
             <div className="max-h-[75vh] overflow-y-auto pr-1">

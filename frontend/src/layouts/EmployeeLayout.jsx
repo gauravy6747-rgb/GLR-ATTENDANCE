@@ -84,7 +84,7 @@ function EmployeeLayout({ children }) {
       </header>
 
       {/* Content */}
-      <main className="flex-1 px-4 py-6 fade-in">
+      <main className="flex-1 px-4 py-6">
         {children}
       </main>
 

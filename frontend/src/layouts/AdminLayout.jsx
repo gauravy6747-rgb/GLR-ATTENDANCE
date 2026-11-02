@@ -214,33 +214,35 @@ function AdminLayout({ children }) {
 
       {/* Main Content */}
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 px-6 py-4 backdrop-blur-md lg:px-8 transition-colors duration-300"
+        <header className="sticky top-0 z-10 px-4 py-3.5 sm:px-6 sm:py-4 backdrop-blur-md lg:px-8 transition-colors duration-300"
           style={{
             background: "color-mix(in srgb, var(--color-surface) 92%, transparent)",
             borderBottom: "1px solid var(--color-border)",
           }}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="fade-in">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-accent)" }}>
                 Admin Panel
               </p>
-              <h1 className="mt-1 text-2xl font-bold" style={{ color: "var(--color-text)" }}>
+              <h1 className="mt-0.5 text-xl sm:text-2xl font-bold" style={{ color: "var(--color-text)" }}>
                 {currentPage?.label || "Dashboard"}
               </h1>
             </div>
 
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <div className="rounded-xl px-4 py-2 text-sm transition-colors duration-300"
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="hidden sm:inline-flex">
+                <ThemeToggle />
+              </div>
+              <div className="rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm transition-colors duration-300"
                 style={{ background: "var(--color-surface-raised)", border: "1px solid var(--color-border)" }}>
                 <span className="font-semibold" style={{ color: "var(--color-text)" }}>{name}</span>
-                <span className="ml-2" style={{ color: "var(--color-text-secondary)" }}>({role})</span>
+                <span className="ml-1.5 sm:ml-2" style={{ color: "var(--color-text-secondary)" }}>({role})</span>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="p-6 lg:p-8 fade-in">
+        <main className="p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>
